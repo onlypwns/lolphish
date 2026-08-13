@@ -1,4 +1,4 @@
-/* GENERATED FILE — do not edit. Source of truth: entries/*.yml (run build.py) */
+/* GENERATED FILE â€” do not edit. Source of truth: entries/*.yml (run build.py) */
 
 const ENTRIES = [
   {
@@ -992,11 +992,11 @@ const STATS = {
 const CATEGORY_META = {
   "Identity Flow Abuse": {
     "color": "#6fd3d3",
-    "blurb": "Abused auth mechanisms — the phish happens on the real login page"
+    "blurb": "Abused auth mechanisms â€” the phish happens on the real login page"
   },
   "User-Assisted Execution": {
     "color": "#d3b46f",
-    "blurb": "The victim is the dropper — clipboard, QR, paste-to-run tricks"
+    "blurb": "The victim is the dropper â€” clipboard, QR, paste-to-run tricks"
   },
   "Trusted Delivery": {
     "color": "#b48fd3",
