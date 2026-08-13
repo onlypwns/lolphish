@@ -1,10 +1,8 @@
-# LOL<><PHISH
+# LOLPHISH
 
 **Living Off Legitimate Phishing Infrastructure** — a community catalog of the legitimate services, identity flows, and trust surfaces that phishing has industrialized on top of.
 
 > LOLBAS catalogs abusable binaries. [LOTS](https://lots-project.com/) catalogs abusable domains. LOLPHISH catalogs the layer in between: the *mechanisms* — auth flows, notification pipelines, hosting surfaces, social-engineering primitives — that turn trusted infrastructure into phishing infrastructure.
-
-**Live site:** `https://<your-username>.github.io/<repo-name>/`
 
 ---
 
