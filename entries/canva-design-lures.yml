@@ -1,0 +1,46 @@
+# LOLPHISH entry — Design-Tool Hosted Lures
+id: canva-design-lures
+name: Design-Tool Hosted Lures
+category: Reputation Laundering
+vendors:
+- Canva
+- Adobe Express
+- Figma
+- Lucid
+summary: Design platforms let anyone publish a shareable page on the platform's own domain (canva.com
+  design links, etc.) — complete with platform TLS, reputation, and categories like 'business/graphics'
+  in every web filter.
+abuse: 'The lure page is a real Canva design: ''this email is encrypted — click to view'' with a button
+  to the actual phishing flow (device code, AiTM). Observed in production in the Kali365/Octopi365 campaigns:
+  Tencent-hosted kits, but the victim''s first click is canva.com. No filter can block Canva; the abuse
+  is architectural.'
+variants:
+- Canva 'encrypted message' envelopes (Kali365 pattern)
+- Figma/Lucid whiteboard 'project review' lures
+- Design-link → shortener → device-code chain (multi-hop reputation laundering)
+- QR embedded in the design image itself
+kits:
+- Kali365 / Octopi365 (observed)
+- Commodity PhaaS templates
+surfaces:
+- canva.com
+- '*.my.canva.site'
+- figma.com
+- adobe.ly shorteners
+attack:
+- T1566.002 — Spearphishing Link
+- 'T1608.001 — Stage Capabilities: Upload Malware/Lures'
+detections:
+- 'Web proxy: design-tool pageview → identity-domain navigation within seconds'
+- New-domain-relationship alerts on canva.site subdomains
+- Passive DNS / certificate transparency on design subdomains with brand keywords
+mitigations:
+- URL isolation for design-platform links from email
+- Behavioral correlation controls (design click + auth event = alert)
+- Vendor abuse-report pipelines (Canva removes reported lures)
+refs:
+- title: Huntress — Kali365 lure hosting on Canva
+  url: https://www.huntress.com/blog/kali365-device-code-phishing-kit
+- title: LOTS Project
+  url: https://lots-project.com/
+since: 2024-25 (observed in PhaaS chains)

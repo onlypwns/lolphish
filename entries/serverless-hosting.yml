@@ -1,0 +1,55 @@
+# LOLPHISH entry — Serverless & JAMstack Phish Hosting
+id: serverless-hosting
+name: Serverless & JAMstack Phish Hosting
+category: Reputation Laundering
+vendors:
+- Cloudflare Workers/Pages
+- Vercel
+- Netlify
+- Azure Static Web Apps
+- Firebase
+- GitHub Pages
+- Render
+- Railway
+summary: Every major platform hands out free HTTPS subdomains on its own domain — workers.dev, vercel.app,
+  web.app, azurestaticapps.net — with the platform's IP reputation, TLS, and web-filter category.
+abuse: 'Phishing pages deploy in seconds to pristine infrastructure: wildcard TLS, CDN IPs shared with
+  Fortune 500 traffic, categories like ''computers/software''. Takedown is per-subdomain whack-a-mole
+  against platforms with millions of legit users. AiTM kits ship with one-click deploys to these targets,
+  and redirect chains use them as clean middle hops.'
+variants:
+- Workers/Pages as AiTM proxy frontends (edge compute = relay logic)
+- Per-campaign burner subdomains with brand-keyword names
+- 'Chained hops: bit.ly → vercel.app → workers.dev → kit'
+- Firebase dynamic links / GitHub Pages redirectors
+kits:
+- Tycoon 2FA
+- Greatness
+- W3LL
+- Most PhaaS panels ship one-click deploys
+surfaces:
+- workers.dev
+- pages.dev
+- vercel.app
+- netlify.app
+- web.app / firebaseapp.com
+- azurestaticapps.net
+- github.io
+- onrender.com
+- up.railway.app
+attack:
+- T1608.001 — Stage Capabilities
+- 'T1583.006 — Acquire Infrastructure: Web Services'
+- T1566.002 — Spearphishing Link
+detections:
+- 'Passive DNS: brand-keyword subdomains on platform domains'
+- Certificate Transparency monitoring for lookalike names
+- 'Egress analytics: rare subdomains + form POSTs + identity-domain referrers'
+mitigations:
+- Subdomain-level (not platform-level) blocking with rapid feedback loops
+- URL isolation/remote browsing for uncategorized platform subdomains
+- CT-log brand monitoring + automated abuse reports
+refs:
+- title: LOTS Project — trusted-site abuse catalog
+  url: https://lots-project.com/
+since: 2020+ (default PhaaS posture by 2023)

@@ -1,0 +1,45 @@
+# LOLPHISH entry — Illicit Consent Grant (OAuth Consent Phishing)
+id: entra-oauth-consent
+name: Illicit Consent Grant (OAuth Consent Phishing)
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+- Google Workspace
+- Salesforce
+- GitHub
+summary: OAuth consent is the legitimate 'Allow this app to read your mail?' screen — the mechanism that
+  lets third-party apps get scoped access without ever knowing your password.
+abuse: The phish IS the consent screen, hosted on the real IdP. Victim clicks Accept on a convincing app
+  registration (verified-publisher lookalike, or unverified with a click-through warning) and grants Mail.Read
+  / offline_access to the attacker's app. Password and MFA never touched; access persists until the grant
+  is revoked, and survives password changes entirely.
+variants:
+- Verified-publisher impersonation (display name/logo mimicry)
+- 'Scope staircasing: ask for profile first, escalate later'
+- '''ConsentFix'' — ClickFix-style lures driving users to consent URLs'
+- 'App-registration-as-C2: granted app used for mailbox read + internal phishing pivot'
+kits:
+- TA2552 (actor)
+- Midnight Blizzard / NOBELIUM (OAuth app persistence)
+- o365-attack-toolkit (research)
+surfaces:
+- login.microsoftonline.com consent page
+- accounts.google.com consent page
+attack:
+- T1566.001 — Spearphishing Link
+- T1550.001 — Use Alternate Authentication Material
+- T1098.003 — Additional App Roles
+detections:
+- 'Entra audit: ''Consent to application'' events; new service principals with mail scopes'
+- 'Defender for Cloud Apps: risky OAuth app / unusual consent alerts'
+- 'Google Workspace token audit: new grants by unverified apps'
+mitigations:
+- Disable user consent or restrict to verified publishers + low-impact scopes
+- Admin consent workflow with scope review
+- Automated grant-review playbook (new mail-scope grant → revoke + investigate)
+refs:
+- title: Microsoft — consent grant attack guidance
+  url: https://learn.microsoft.com/en-us/security/office-365-security/detect-and-remediate-illicit-consent-grants
+- title: entrascopes — first-party scope reference
+  url: https://entrascopes.com/
+since: 2017 (Google Docs worm) / 2020+ (Entra industrialization)

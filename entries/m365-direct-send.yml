@@ -1,0 +1,40 @@
+# LOLPHISH entry — Exchange Direct Send & Tenant Sender Abuse
+id: m365-direct-send
+name: Exchange Direct Send & Tenant Sender Abuse
+category: Trusted Delivery
+vendors:
+- Microsoft 365 / Exchange Online
+summary: Direct Send lets devices and apps inside an org mail via the tenant smart host (<tenant>.mail.protection.outlook.com)
+  without authentication. .onmicrosoft.com domains are every tenant's built-in Microsoft-assigned sender
+  domain.
+abuse: 'Attackers abuse Direct Send to spoof internal users — mail arrives looking like it came from the
+  CFO''s real internal address, through Microsoft''s own infrastructure, often bypassing SPF/DKIM expectations
+  that were configured for perimeter mail rather than ''internal'' flows. Parallel primitive: freshly
+  created tenants send from legitimate *.onmicrosoft.com addresses that inherit Microsoft''s sender reputation.'
+variants:
+- Direct Send spoofing of internal addresses (CFO/IT lures)
+- Burner-tenant .onmicrosoft.com outbound phishing
+- Abuse of tenant-to-tenant trust in hybrid Exchange
+- Direct Send + voicemail/notification lures (looks like internal system mail)
+kits:
+- Commodity BEC tooling
+- Custom PowerShell/SMTP scripts
+surfaces:
+- '*.mail.protection.outlook.com'
+- '*.onmicrosoft.com'
+attack:
+- T1566.001 — Spearphishing Attachment
+- T1566.002 — Spearphishing Link
+- T1078 — Valid Accounts
+detections:
+- Inbound mail where internal sender resolves only via smart-host path (no auth results)
+- Alert on RejectDirectSend=false tenants receiving unauthenticated internal-claimed mail
+- New-tenant onmicrosoft senders with zero prior relationship
+mitigations:
+- Set RejectDirectSend=true (Exchange Online org setting)
+- SPF hard-fail + DMARC reject; review hybrid connectors
+- External-sender banner even for lookalike-internal display names
+refs:
+- title: Microsoft — Direct Send documentation
+  url: https://learn.microsoft.com/en-us/exchange/mail-flow-best-practices/how-to-set-up-a-multifunction-device-or-application-to-send-email-using-microsoft-365-or-office-365
+since: 2025 (mass-abuse wave)

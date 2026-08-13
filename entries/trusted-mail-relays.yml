@@ -1,0 +1,45 @@
+# LOLPHISH entry — Transactional Mail Relay Laundering
+id: trusted-mail-relays
+name: Transactional Mail Relay Laundering
+category: Trusted Delivery
+vendors:
+- SendGrid
+- Amazon SES
+- Mailgun
+- Postmark
+- Brevo
+- SMTP2GO
+summary: Transactional email providers exist so apps can send mail that inboxes trust — their IPs and
+  domains carry decades of deliverability reputation.
+abuse: 'Free-tier or compromised relay accounts send phishing that passes SPF/DKIM alignment through the
+  provider''s infrastructure. BEC and callback-phishing (TOAD) operations favor relays precisely because
+  ''received: from sendgrid.net'' defuses both filters and analysts. Compromised legitimate sender accounts
+  are the premium tier: real brand, real domain, real signatures.'
+variants:
+- Free-tier account farming for clean-IP bursts
+- Compromised customer accounts (real brand sends the lure)
+- Relay reply-chain hijack (thread hijacking from real inboxes)
+- Webhook-configured bounce/tracking domains as redirectors
+kits:
+- Commodity BEC tooling
+- TOAD/callback phishing operations
+surfaces:
+- sendgrid.net
+- amazonses.com
+- mailgun.org
+- postmarkapp.com
+attack:
+- T1566 — Phishing
+- 'T1586.002 — Compromise Accounts: Email Accounts'
+detections:
+- First-time sender analytics even on 'trusted' relay domains
+- 'Content/brand mismatch: relay sender + credential lure'
+- DMARC aggregate reports showing unowned sending sources
+mitigations:
+- Strict DMARC (p=reject) to shrink spoofing surface
+- 'Inbound policy: relay-origin mail still subject to full content inspection'
+- Provider abuse pipelines + key rotation hygiene for your own accounts
+refs:
+- title: LOTS Project
+  url: https://lots-project.com/
+since: Chronic / industrialized 2022+

@@ -1,0 +1,52 @@
+# LOLPHISH entry — AiTM Reverse-Proxy Phishing
+id: aitm-reverse-proxy
+name: AiTM Reverse-Proxy Phishing
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+- Google Workspace
+- Okta
+- Any web SSO
+summary: 'Adversary-in-the-middle kits reverse-proxy the real login page: the victim sees the genuine
+  Microsoft/Google/Okta site, served live through attacker infrastructure.'
+abuse: Because the proxy relays the real IdP, the victim's MFA completes for real — and the kit harvests
+  the resulting session cookie/token in transit. Attackers replay the session directly or launder it into
+  durable tokens (FOCI/ROPC). This is the technique that made 'MFA is enough' stop being true, and it
+  is the industrial base of modern BEC.
+variants:
+- Session-cookie replay into attacker browser (companion desktop apps)
+- 'Token laundering: session → refresh token → PRT (broker path)'
+- Targeted 'spear-phishing proxy' with per-victim cloned tenant branding
+- AiTM behind clean-IP residential proxies to defeat ASN heuristics
+kits:
+- Evilginx
+- Modlishka
+- Tycoon 2FA
+- Rockstar 2FA
+- Mamba 2FA
+- Sneaky 2FA
+- NakedPages
+- W3LL
+- Greatness
+- Graphish
+surfaces:
+- Real IdP pages relayed through kit domains
+- Kit panels on bulletproof/hosting ASNs
+attack:
+- T1557 — Adversary-in-the-Middle
+- T1539 — Steal Web Session Cookie
+- T1566.002 — Spearphishing Link
+detections:
+- Sign-in from hosting/data-center ASN immediately after victim MFA event
+- Impossible travel + token replay alerts; 'stolen session cookie' detections in M365D
+- Passive DNS on kit TLD patterns; proxy-rewrite artifacts (URL-in-URL)
+mitigations:
+- Phishing-resistant auth (FIDO2/passkeys) — origin binding defeats relay
+- CA token protection + session controls (sign-in frequency, CAE)
+- Conditional Access location/device policies that fail closed
+refs:
+- title: Evilginx (reference kit)
+  url: https://github.com/kgretzky/evilginx2
+- title: Microsoft — token theft / AiTM guidance
+  url: https://learn.microsoft.com/en-us/security/
+since: 2018 (Modlishka) / 2022+ (PhaaS industrialization)

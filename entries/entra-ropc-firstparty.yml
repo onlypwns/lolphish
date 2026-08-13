@@ -1,0 +1,44 @@
+# LOLPHISH entry — ROPC + First-Party Client ID Abuse
+id: entra-ropc-firstparty
+name: ROPC + First-Party Client ID Abuse
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+summary: Resource Owner Password Credentials is a legacy OAuth grant where username+password are sent
+  straight to the token endpoint. Microsoft pre-consents dozens of first-party client IDs (Office, Teams,
+  Azure CLI, broker apps) with broad scopes in every tenant.
+abuse: With a phished or brute-forced password, the attacker authenticates as a trusted first-party app
+  over ROPC — no consent prompt, no client secret, and frequently no MFA/CA evaluation because the flow
+  looks like 'Microsoft Office' syncing. Picking the right client ID (per entrascopes.com) chooses your
+  scopes, FOCI membership, and CA-bypass profile. Variants of this are the quiet workhorse behind credential-stuffing-to-mailbox-access
+  pipelines and post-AiTM token laundering.
+variants:
+- Client-ID shopping for CA-bypass (per-app CA evaluation gaps)
+- 'Scope staircasing: minimal scope for login, pivot to Mail.Read via FOCI'
+- ROPC against legacy-basic-auth-adjacent tenants that never blocked it
+- 'Combined with AiTM: replay phished creds via ROPC to mint durable refresh tokens'
+kits:
+- AADInternals (research)
+- ROADtools (research)
+- entrascopes.com (reference catalog)
+surfaces:
+- login.microsoftonline.com token endpoint
+- Pre-consented first-party app registrations
+attack:
+- T1078 — Valid Accounts
+- T1528 — Steal Application Access Token
+- T1110 — Brute Force
+detections:
+- Sign-ins with client app = 'Other clients' / public clients from data-center ASNs
+- Non-interactive sign-in volume spikes per client ID
+- Alert on known-abused first-party client IDs appearing from new IP ranges per user
+mitigations:
+- Block legacy auth org-wide and scope CA to 'all cloud apps' (no exclusions)
+- 'CA: require compliant/hybrid-joined device for public-client flows'
+- 'Hunt baseline: enumerate which first-party client IDs your users legitimately use; alert off-baseline'
+refs:
+- title: entrascopes — Entra first-party apps & scope browser
+  url: https://entrascopes.com/
+- title: AADInternals
+  url: https://aadinternals.com/
+since: 2019 (research) / ongoing in the wild

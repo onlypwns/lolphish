@@ -1,0 +1,47 @@
+# LOLPHISH entry — SaaS Notification & Invite Phishing
+id: saas-invite-phish
+name: SaaS Notification & Invite Phishing
+category: Trusted Delivery
+vendors:
+- DocuSign
+- SharePoint/OneDrive
+- Google Drive
+- Dropbox
+- Adobe Acrobat Sign
+- Lucid
+summary: Document platforms send real notification emails from their real domains when someone shares
+  a file or requests a signature. That notification pipeline is the lure delivery mechanism.
+abuse: 'The phish email is *actually from* docusign.net / sharepointonline.com / dropbox.com — SPF, DKIM,
+  DMARC all pass, sender reputation is pristine. The payload lives one click deeper: a malicious link
+  inside the shared doc, a credential page behind the ''sign'' button, or an OAuth consent screen. Defenders
+  are left arguing with allowlists that were supposed to keep these domains clean.'
+variants:
+- DocuSign envelope abuse (compromised or free accounts)
+- SharePoint/OneDrive share notifications → AiTM link in the doc
+- Google Drive/Docs comment-mention phishing (notification without share)
+- Adobe Sign / Lucidchart / Miro variants — any platform with a notify feature
+- Compromised-vendor-account phishing (real org's account sends the lure)
+kits:
+- Commodity PhaaS lure templates
+- Compromised SaaS accounts (no kit needed)
+surfaces:
+- docusign.net
+- sharepointonline.com
+- docs.google.com
+- dropbox.com
+- adobesign.com
+attack:
+- T1566.002 — Spearphishing Link
+- T1566.003 — Spearphishing via Service
+detections:
+- 'Click telemetry: SaaS notification → off-platform credential domain within N seconds'
+- New-sender relationship analytics on notification service accounts
+- Doc-content scanning where API access exists (CASB)
+mitigations:
+- Click-time URL protection (rewrites that re-scan at click, not just delivery)
+- CASB/SSPM controls on inbound sharing from unknown tenants
+- User training anchored on 'real sender ≠ safe link'
+refs:
+- title: LOTS Project — abused trusted sites
+  url: https://lots-project.com/
+since: 2019+ (industrialized 2023+)

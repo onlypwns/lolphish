@@ -1,0 +1,74 @@
+# LOLPHISH entry — AWS Identity Center Device Flow & 'aws login' Phishing
+id: aws-identity-center-device-flow
+name: AWS Identity Center Device Flow & 'aws login' Phishing
+category: Identity Flow Abuse
+vendors:
+- AWS (IAM Identity Center)
+summary: 'AWS CLI authentication offers two browser-mediated flows: the classic IAM Identity Center (formerly
+  AWS SSO) device authorization flow — where the CLI gives you a code and a device.sso.<region>.amazonaws.com
+  URL — and the newer ''aws login'' OAuth flow (2025), including a --remote cross-device mode for headless
+  environments.'
+abuse: 'Both flows split authentication across two devices — and that split is the phish. For Identity
+  Center device flow: the attacker discovers the victim org''s <org>.awsapps.com start URL (trivially
+  enumerable), registers an OIDC client and starts a device authorization, then sends the victim the genuine
+  AWS verification URL. The victim authenticates through their real IdP — MFA, device trust, even hardware
+  keys all pass, because the attack targets the post-authentication authorization layer, not the login.
+  The attacker polls sso-oidc:CreateToken and receives an SSO access token valid for 8 hours, then enumerates
+  every account and role the victim can reach (ListAccounts/ListAccountRoles) and mints real AWS credentials
+  via GetRoleCredentials. For ''aws login --remote'': the victim completes the OAuth flow while the attacker
+  exchanges the code from their own IP (client_id arn:aws:signin:::devtools/cross-device). It is a feature,
+  not a bug — you cannot SCP-block the classic device flow''s CreateToken (it executes against the org
+  management account), which is why AWS shipped PKCE auth in CLI 2.22+ but left the device flow enabled
+  with no off switch.'
+variants:
+- Identity Center device code phishing (classic, since 2021)
+- '''aws login --remote'' OAuth code interception (2025+, cross-device client_id)'
+- Malicious login URL crafted with attacker-controlled start URL parameters
+- Post-compromise role enumeration → GetRoleCredentials across all victim accounts
+- Phishing root credentials via 'aws login' (root capable, bypasses phishing-resistant MFA)
+kits:
+- awsssome_phish (POC, Sebastian Mora)
+- Granted browser extension (defensive POC)
+- Custom boto3 scripts (the flow is ~20 lines)
+surfaces:
+- device.sso.<region>.amazonaws.com
+- <org>.awsapps.com/start
+- signin.aws.amazon.com
+- Real IdP login (Okta/Entra) upstream of Identity Center
+attack:
+- T1566.002 — Spearphishing Link
+- T1528 — Steal Application Access Token
+- T1550.001 — Use Alternate Authentication Material
+- 'T1078.004 — Valid Accounts: Cloud Accounts'
+detections:
+- 'CloudTrail: eventSource=sso.amazonaws.com, eventName=CreateToken, grantType=urn:ietf:params:oauth:grant-type:device_code
+  — alert on ANY usage after PKCE migration'
+- 'Split-IP correlation: sso:ListApplications (victim IP) vs sso-oidc:CreateToken (attacker IP) for the
+  same principalId within ~10 min'
+- '''aws login'': AuthorizeOAuth2Access + CreateOAuth2Token with client_id=arn:aws:signin:::devtools/cross-device
+  and mismatched source IPs/user agents'
+- 'Volume anomaly: sso:ListAccountRoles spike for a single user (normal UI flow uses internal portal endpoints
+  instead)'
+- 'Email/proxy: any device.sso.<region>.amazonaws.com URL in inbound mail is suspicious — these links
+  are generated locally, never legitimately emailed'
+mitigations:
+- Upgrade AWS CLI to 2.22.0+ (PKCE flow default) and migrate users off device code — then alert on any
+  remaining device_code CreateToken as anomalous
+- Block device.sso.<region>.amazonaws.com at the corporate proxy/EDR — kills device flow on managed devices
+- SCP denying signin:AuthorizeOAuth2Access + signin:CreateOAuth2Token where 'aws login' is not needed
+  — a hard, complete block of the new vector
+- 'Containment note: disabling the user does NOT revoke SSO access tokens (cached up to 1h) — remove all
+  permission-set assignments to revoke immediately'
+- 'SEG rule: quarantine mail containing device.sso.*.amazonaws.com links'
+refs:
+- title: Christophe Tafani-Dereeper — Phishing for AWS credentials via AWS SSO device code
+  url: https://blog.christophetd.fr/phishing-for-aws-credentials-via-aws-sso-device-code-authentication/
+- title: Christophe Tafani-Dereeper — The new PKCE authentication in AWS SSO
+  url: https://blog.christophetd.fr/pkce-aws-sso/
+- title: Rami McCarthy — AWS could do more about SSO device auth phishing
+  url: https://ramimac.me/aws-device-auth
+- title: 'Mitiga — Inside AWS login: a new phishing method'
+  url: https://www.mitiga.io/blog/inside-aws-login-exploring-a-new-phishing-method
+- title: Push Security — Analyzing the rise in device code phishing
+  url: https://pushsecurity.com/blog/device-code-phishing
+since: 2021 (Identity Center device flow) / 2025 (aws login OAuth)

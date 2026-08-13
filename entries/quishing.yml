@@ -1,0 +1,41 @@
+# LOLPHISH entry — QR Code Phishing (Quishing)
+id: quishing
+name: QR Code Phishing (Quishing)
+category: User-Assisted Execution
+vendors:
+- Microsoft 365
+- Any email + mobile target
+summary: 'QR codes are a legitimate bridge from desktop/print to mobile. In phishing they smuggle the
+  URL past every email-layer control: the link is an image, and the victim''s phone — outside corporate
+  protection — is where it detonates.'
+abuse: SEG URL rewriting, sandboxing, and detonation all operate on links — a QR inside a PNG/PDF is opaque
+  to most pipelines. Victim scans with a personal phone, lands on an AiTM kit or a device-code page on
+  an unmanaged device with no EDR, no proxy, no CA signal the SOC recognizes.
+variants:
+- MFA-enrollment QR ('scan to re-register your authenticator')
+- QR-in-PDF-attachment to survive preview panes
+- Nested QR / split-image reassembly vs OCR extraction
+- Physical quishing (parking meters, office posters) as hybrid entry
+kits:
+- Tycoon 2FA (QR delivery)
+- Rockstar 2FA
+- Generic AiTM kits with QR modules
+surfaces:
+- Email body images
+- PDF attachments
+- Print/physical media
+attack:
+- T1566.001 — Spearphishing Attachment
+- T1566.002 — Spearphishing Link
+detections:
+- SEG with QR extraction/OCR; decode-and-rewrite URLs inside images
+- Sign-ins from mobile carrier ASNs post-delivery
+- Report-phish workflows tuned to image-only mails
+mitigations:
+- SEG QR decoding + click-time protection
+- Block/banner image-only emails from external senders
+- MFA re-registration flows that never involve a mailed QR
+refs:
+- title: Microsoft — QR phishing guidance
+  url: https://learn.microsoft.com/en-us/security/
+since: 2023 (mass campaigns)

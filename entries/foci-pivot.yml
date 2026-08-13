@@ -1,0 +1,39 @@
+# LOLPHISH entry — FOCI Token Family Pivoting
+id: foci-pivot
+name: FOCI Token Family Pivoting
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+summary: 'Family of Client IDs (FOCI) lets Microsoft''s own apps share refresh tokens: a refresh token
+  issued to one family member can be redeemed for tokens to another family member''s resources.'
+abuse: 'Any phished or ROPC-minted first-party refresh token becomes a skeleton key: redeem it as Teams,
+  then pivot the family to reach Office mail, Graph, or broker scopes the original grant never asked for.
+  This turns low-scope compromises into broad mailbox/data access and complicates revocation scoping —
+  defenders must kill the family, not the single token.'
+variants:
+- Broker-client escalation into FOCI family
+- Post-AiTM session laundering into FOCI tokens for durability
+- Refresh-token resale pipelines (token markets) keyed on FOCI membership
+kits:
+- TokenTactics (POC)
+- ROADtools (research)
+- entrascopes.com (FOCI filter)
+surfaces:
+- First-party refresh token family
+attack:
+- T1550.001 — Use Alternate Authentication Material
+- T1528 — Steal Application Access Token
+detections:
+- Token redemptions for client IDs with no corresponding interactive sign-in
+- Single user, many first-party client IDs in short windows
+- Correlate refresh events against phishing-sign-in events (device code, AiTM ASN)
+mitigations:
+- Revoke at the user level (all refresh tokens) on any identity-phish event — not per-session
+- Continuous Access Evaluation where supported
+- Token protection CA policies for Exchange/SharePoint (P2)
+refs:
+- title: entrascopes — FOCI status per first-party app
+  url: https://entrascopes.com/
+- title: AADInternals — FOCI research
+  url: https://aadinternals.com/
+since: 2020 (public research)

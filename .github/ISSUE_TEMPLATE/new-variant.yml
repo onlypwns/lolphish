@@ -1,0 +1,45 @@
+name: "🧬 New Variant"
+description: Report a new variant of an existing entry (e.g. a new ClickFix mutation).
+title: "[VARIANT] <entry> — <variant name>"
+labels: ["variant"]
+body:
+  - type: dropdown
+    id: entry
+    attributes:
+      label: Which entry does this belong to?
+      options:
+        - Device Code Flow Phishing
+        - ROPC + First-Party Client ID Abuse
+        - Illicit Consent Grant (OAuth Consent Phishing)
+        - FOCI Token Family Pivoting
+        - AiTM Reverse-Proxy Phishing
+        - GitHub Device Flow & OAuth Phishing
+        - AWS Identity Center Device Flow & 'aws login' Phishing
+        - ClickFix Family (User-Assisted Execution)
+        - QR Code Phishing (Quishing)
+        - Exchange Direct Send & Tenant Sender Abuse
+        - SaaS Notification & Invite Phishing
+        - Calendar Invite Phishing
+        - Design-Tool Hosted Lures
+        - Serverless & JAMstack Phish Hosting
+        - IPFS / Decentralized Phish Hosting
+        - URL Rewriter & Open-Redirect Laundering
+        - Transactional Mail Relay Laundering
+    validations:
+      required: true
+  - type: textarea
+    id: variant
+    attributes:
+      label: Variant
+      description: "Format: Variant name — what it changes / which specific control it defeats"
+      placeholder: "FileFix — paste into File Explorer address bar (bypasses Run-dialog GPO)"
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source URL
+      description: Published research or vendor writeup documenting this variant
+      placeholder: https://...
+    validations:
+      required: true

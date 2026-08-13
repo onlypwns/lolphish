@@ -1,0 +1,26 @@
+name: "🔧 Correction"
+description: Fix something wrong or stale in an existing entry (dead technique, wrong detail, dead link).
+title: "[FIX] <entry> — <what's wrong>"
+labels: ["correction"]
+body:
+  - type: input
+    id: entry
+    attributes:
+      label: Entry affected
+      placeholder: e.g. entra-device-code
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's wrong or stale
+      description: Quote the current text and say what it should be. Note if a technique has been killed by a vendor change (that's valuable — we track it).
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source URL
+      placeholder: https://...
+    validations:
+      required: true

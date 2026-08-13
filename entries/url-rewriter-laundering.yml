@@ -1,0 +1,50 @@
+# LOLPHISH entry — URL Rewriter & Open-Redirect Laundering
+id: url-rewriter-laundering
+name: URL Rewriter & Open-Redirect Laundering
+category: Reputation Laundering
+vendors:
+- Proofpoint URL Defense
+- Microsoft Safe Links
+- Google
+- LinkedIn
+- Bing
+- Any SEG
+summary: Secure email gateways rewrite inbound links through their own scanning domains (urldefense.com,
+  *.safelinks.protection.outlook.com). Major platforms run open-redirect endpoints (google.com/url, linkedin.com/slink,
+  bing.com/ck/a) for click tracking.
+abuse: 'Attackers send their phishing link through a target that already has the SEG — the inbound copy
+  arrives pre-wrapped in the victim''s own protection vendor''s domain. Filters see urldefense.com (trusted);
+  users were trained that ''wrapped = scanned = safe''. Open redirects do the same with household brands:
+  the visible domain is google.com, the detonation happens at the redirect target. Reputation laundering
+  as a service, performed by your own security stack.'
+variants:
+- 'Cross-tenant wrapping: attacker mails themselves first to obtain wrapped links'
+- Safe Links link re-sharing (wrapped link harvested, reused against other tenants)
+- Google/Bing/LinkedIn open-redirect chains as final hop
+- Multi-SEG wrapping (rewrite-in-rewrite) to defeat decoder heuristics
+kits:
+- Commodity — no kit needed, just a victim tenant with an SEG
+- Redirect-chain builders in PhaaS panels
+surfaces:
+- urldefense.com
+- '*.safelinks.protection.outlook.com'
+- google.com/url
+- bing.com/ck/a
+- lnkd.in / linkedin.com/slink
+attack:
+- T1566.002 — Spearphishing Link
+- T1027 — Obfuscated Files or Information
+detections:
+- Decoder that unwraps all known rewriter schemes to the terminal URL
+- Alert on wrapped links whose terminal domain is newly registered
+- 'Click telemetry: rewrite-domain click from a tenant that never received the original mail'
+mitigations:
+- SEG click-time re-scanning (not just delivery-time verdict)
+- Block known open-redirect patterns at the proxy
+- Train users that wrapped links are *links*, not verdicts
+refs:
+- title: Proofpoint — URL Defense documentation
+  url: https://www.proofpoint.com/
+- title: Microsoft — Safe Links documentation
+  url: https://learn.microsoft.com/en-us/defender-office-365/safe-links-about
+since: 2021+ (chronic, under-cataloged)

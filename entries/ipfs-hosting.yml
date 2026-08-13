@@ -1,0 +1,41 @@
+# LOLPHISH entry — IPFS / Decentralized Phish Hosting
+id: ipfs-hosting
+name: IPFS / Decentralized Phish Hosting
+category: Reputation Laundering
+vendors:
+- IPFS gateways
+- Filecoin/Arweave ecosystem
+summary: IPFS content is addressed by hash (CID) and served through public HTTP gateways (ipfs.io, dweb.link,
+  cloudflare-ipfs.com). No account, no hosting provider, no takedown handle on the content itself.
+abuse: Phishing pages pinned to IPFS ride high-reputation gateway domains; the same content reappears
+  on any of dozens of gateways after a single-gateway block. Blocking ipfs.io wholesale breaks legitimate
+  Web3 traffic; blocking per-CID is Sisyphean. Used for credential pages and malware staging alike.
+variants:
+- Gateway rotation after takedown (same CID, new host)
+- CID-in-path vs CID-in-subdomain encoding tricks vs regex blocks
+- IPFS + ENS/.crypto naming for semi-permanent brand squatting
+- Phishing kits bundling IPFS publish scripts
+kits:
+- Commodity kit modules
+- Pinning-service abuse (Pinata etc.)
+surfaces:
+- ipfs.io
+- dweb.link
+- cloudflare-ipfs.com
+- gateway.pinata.cloud
+- arweave.net
+attack:
+- T1608.001 — Stage Capabilities
+- 'T1583.006 — Acquire Infrastructure: Web Services'
+detections:
+- 'Egress: gateway domains + credential-form POST behavior'
+- Brand monitoring across gateway + CID combinations
+- 'Email SEG: URL rewriting that inspects CID-path links'
+mitigations:
+- Gateway restriction to sanctioned business gateways, others to isolation
+- Click-time protection on CID-pattern URLs
+- Abuse reporting to gateway operators (they can denylist CIDs)
+refs:
+- title: LOTS Project
+  url: https://lots-project.com/
+since: 2022+ (steady background hum)

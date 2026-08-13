@@ -1,0 +1,43 @@
+# LOLPHISH entry — Calendar Invite Phishing
+id: calendar-invite-phish
+name: Calendar Invite Phishing
+category: Trusted Delivery
+vendors:
+- Google Calendar
+- Microsoft 365
+- Apple
+summary: 'Calendar systems auto-process invites: Google Calendar can auto-add events from emailed .ics
+  invites; Outlook surfaces tentative meetings. The event — with its description field — lands on the
+  victim''s device through a channel email security barely inspects.'
+abuse: 'Attacker sends an .ics invite whose description/location fields carry the phishing link (fake
+  billing dispute, ''missed meeting notes'', MFA reset). The event appears natively in the calendar UI
+  — a trusted surface with push notifications — and SEGs historically didn''t rewrite or detonate links
+  inside invite bodies. Newer twist: calendar invites as indirect prompt-injection carriers against AI
+  assistants that summarize schedules.'
+variants:
+- Fake subscription/billing 'cancel this charge' events
+- Meeting-notes lure with AiTM link in description
+- Recurring-event persistence (reminder re-fires weekly)
+- AI-assistant prompt injection via invite text
+kits:
+- Commodity .ics generators
+- PhaaS calendar modules
+surfaces:
+- calendar.google.com
+- Outlook tentative-accept UI
+- ICS attachments
+attack:
+- T1566.001 — Spearphishing Attachment
+- T1566.003 — Spearphishing via Service
+detections:
+- Mail flow rules flagging .ics with URLs in DESCRIPTION/LOCATION
+- 'Endpoint: calendar events from external organizers with link payloads'
+- User-report pipeline tuned for calendar lures
+mitigations:
+- 'Google Calendar: ''only add invitations I respond to'' / disable auto-add from unknown senders'
+- SEG coverage for invite-body URLs
+- Block external .ics at gateway for high-risk user groups
+refs:
+- title: Google Calendar — invitation settings
+  url: https://support.google.com/calendar/
+since: 2019 (first waves) / 2024+ (resurgence + AI angle)

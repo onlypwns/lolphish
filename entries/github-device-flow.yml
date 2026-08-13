@@ -1,0 +1,42 @@
+# LOLPHISH entry — GitHub Device Flow & OAuth Phishing
+id: github-device-flow
+name: GitHub Device Flow & OAuth Phishing
+category: Identity Flow Abuse
+vendors:
+- GitHub
+summary: GitHub implements the same RFC 8628 device flow for CLIs and headless environments (github.com/login/device),
+  plus full OAuth app authorization.
+abuse: Attackers lure developers — frequently via fake job interviews, repo-collaboration invites, or
+  fake security alerts — into entering an attacker-generated code on the real GitHub device page, or into
+  authorizing an attacker OAuth app. Yields repo access, org membership visibility, and tokens usable
+  against private code and CI secrets. The 2024-25 wave of dev-targeted recruitment lures leaned heavily
+  on this.
+variants:
+- Fake recruiter / coding-challenge repos pushing device-code 'setup tools'
+- OAuth app consent phishing for repo scope
+- Compromised account → device flow against org colleagues (internal pivot)
+- Malicious VS Code extension pairing with device flow
+kits:
+- Lazarus-adjacent recruitment lures (actor tradecraft)
+- Custom scripts (device flow is 20 lines of Python)
+surfaces:
+- github.com/login/device
+- github.com/login/oauth/authorize
+attack:
+- T1566 — Phishing
+- T1528 — Steal Application Access Token
+- T1078 — Valid Accounts
+detections:
+- 'Org audit log: oauth_application.authorize and new user-code grants'
+- New OAuth authorizations with repo scope from unexpected geographies
+- Alert on device-flow events for orgs that never use CLI device login
+mitigations:
+- 'Org policy: restrict third-party OAuth application access'
+- Require SSH/signing + SSO session controls for sensitive repos
+- 'Developer training: real recruiters never ask you to ''authorize a device'''
+refs:
+- title: GitHub — authorizing OAuth apps (docs)
+  url: https://docs.github.com/en/apps/oauth-apps
+- title: RFC 8628 — Device Authorization Grant
+  url: https://datatracker.ietf.org/doc/html/rfc8628
+since: 2023-24 (mass dev-targeting campaigns)

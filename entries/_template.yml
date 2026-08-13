@@ -1,0 +1,71 @@
+# ============================================================
+# LOLPHISH entry template
+# Copy this file to entries/<your-entry-id>.yml and fill it in.
+# Rules:
+#   - id: lowercase-kebab-case, stable, matches the filename
+#   - category: must be one of the four allowed values below
+#   - refs are MANDATORY — public research only, no zero-days
+#   - an entry without detections AND mitigations will not be merged
+# ============================================================
+
+id: my-entry-slug
+name: Human-Readable Technique Name
+
+# One of exactly:
+#   Identity Flow Abuse
+#   User-Assisted Execution
+#   Trusted Delivery
+#   Reputation Laundering
+category: Identity Flow Abuse
+
+vendors:
+  - Vendor / Platform Name
+
+# What the legitimate thing is FOR. One or two sentences.
+summary: >
+  Describe the legitimate feature, protocol, or service here —
+  what it was built to do and who uses it legitimately.
+
+# The abuse primitive: the "how". This is the heart of the entry.
+# Explain the mechanism, not a specific campaign.
+abuse: >
+  Explain how attackers abuse the legitimate thing: what the victim
+  sees, what the attacker gets, and why existing controls miss it.
+
+# Named mutations. Each variant should exist for a reason —
+# ideally a specific control it defeats. Observed or published only.
+variants:
+  - Variant name — what it changes and which control it defeats
+  - Another variant
+
+# Phishing kits, public tooling, tracked threat actors.
+kits:
+  - Kit or actor name (POC/tool/actor)
+
+# The trust surfaces that make the abuse credible —
+# real domains, real UIs, real sender infrastructure.
+surfaces:
+  - example.com
+  - Real vendor UI or pipeline
+
+# MITRE ATT&CK mappings.
+attack:
+  - T1566.002 — Spearphishing Link
+
+# Telemetry + hunting guidance. Be specific: log source, field, value.
+# Detection-as-code (KQL/Sigma/Splunk) strongly encouraged.
+detections:
+  - "Log source: field = value — why it fires"
+  - "Correlation logic across events"
+
+# Structural controls. Not "user awareness" alone — the thing that
+# actually kills or constrains the primitive.
+mitigations:
+  - The structural control and what it blocks
+
+refs:
+  - title: Source title — Author/Vendor
+    url: https://example.com/research
+
+# First widely documented (year or period).
+since: "2024"

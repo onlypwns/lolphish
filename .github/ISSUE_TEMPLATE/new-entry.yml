@@ -1,0 +1,62 @@
+name: "🎣 New Entry Proposal"
+description: Propose a new abusable primitive for the catalog. A maintainer reviews; on approval this becomes a PR automatically.
+title: "[ENTRY] <technique name>"
+labels: ["entry-proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Propose a new LOLPHISH entry
+        Fill in the template below — it's a copy of `entries/_template.yml`.
+        **Ground rules:** public research only · refs are mandatory ·
+        no detections + mitigations = no merge.
+  - type: textarea
+    id: yaml
+    attributes:
+      label: Entry YAML
+      description: Complete every field. Wrap it in a ```yaml code fence (already provided).
+      render: yaml
+      value: |
+        id: my-entry-slug
+        name: Human-Readable Technique Name
+        category: Identity Flow Abuse   # Identity Flow Abuse | User-Assisted Execution | Trusted Delivery | Reputation Laundering
+        vendors:
+          - Vendor / Platform
+        summary: >
+          What the legitimate thing is for.
+        abuse: >
+          The abuse primitive — the "how".
+        variants:
+          - Variant name — what it changes / which control it defeats
+        kits:
+          - Kit, tool, or tracked actor
+        surfaces:
+          - real-domain.com or trusted UI/pipeline
+        attack:
+          - T1566.002 — Spearphishing Link
+        detections:
+          - "Log source: field = value — why it fires"
+        mitigations:
+          - The structural control that kills or constrains it
+        refs:
+          - title: Source title — Author/Vendor
+            url: https://example.com/research
+        since: "2025"
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Why this belongs in the catalog
+      description: One or two sentences — what gap does this fill, or what campaign/research shows it matters?
+    validations:
+      required: true
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Ground rules
+      options:
+        - label: Everything above is from public, published research (linked in refs)
+          required: true
+        - label: I understand maintainers may edit for tone, structure, and schema fit
+          required: true

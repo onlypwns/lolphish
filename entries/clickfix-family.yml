@@ -1,0 +1,61 @@
+# LOLPHISH entry — ClickFix Family (User-Assisted Execution)
+id: clickfix-family
+name: ClickFix Family (User-Assisted Execution)
+category: User-Assisted Execution
+vendors:
+- Windows
+- macOS
+- Cross-platform (browser)
+summary: 'Not one technique but a genus: clipboard-hijack social engineering that makes the victim execute
+  the payload themselves — the user is the dropper. Lure page stages a command on the clipboard; a fake
+  CAPTCHA / ''fix this error'' prompt walks the victim through pasting it into a native execution surface.'
+abuse: 'JavaScript writes a staged command (mshta/powershell/curl/osascript one-liner) to the clipboard;
+  the page instructs Win+R → Ctrl+V → Enter (or the File Explorer address bar, Terminal, Script Editor).
+  No file download, no exploit — execution is user-consented, so most perimeter controls see nothing.
+  Microsoft named it the top initial-access method of 2025. Each variant exists to defeat a specific control:
+  FileFix because orgs locked the Run dialog, Script Editor because Mac users learned to fear Terminal.'
+variants:
+- ClickFix (original) — fake CAPTCHA → Win+R Run dialog
+- FileFix — paste into File Explorer address bar (bypasses Run-dialog GPO)
+- CrashFix — malicious extension genuinely crashes the browser, then offers a 'repair'
+- GlitchFix / ErrTraffic — TDS actually corrupts page rendering so the 'fix' prompt is credible
+- DNS staging — nslookup replaces PowerShell download (payload rides DNS)
+- wt.exe — hex-encoded commands via Windows Terminal (dodges RunMRU)
+- macOS Script Editor — applescript:// URL pre-loads the editor, no Terminal paste
+- net use WebDAV — maps attacker share, sidesteps endpoint download inspection
+- ClickFake Interview / fake Google Meet — job & meeting lures, Win+Mac payloads
+- JackFix, ConsentFix, TerminalFix, DownloadFix — the naming free-for-all
+kits:
+- ClearFake (precursor)
+- ErrTraffic TDS
+- Lumma / AMOS stealer pipelines
+- ClickGrab (catalog)
+- ClickFix Hunter (tracker)
+surfaces:
+- Fake reCAPTCHA / Cloudflare Turnstile clones
+- Compromised legitimate sites
+- Malvertising + SEO poisoning
+- Hijacked browser extensions
+attack:
+- 'T1204.001 — User Execution: Malicious Link'
+- T1059.001 — PowerShell
+- T1218 — System Binary Proxy Execution
+- T1185 — Browser Session Hijacking
+detections:
+- 'Process chains: explorer.exe / run dialog MRU → powershell|mshta|curl|nslookup'
+- PowerShell 4104 script-block logging on paste-style one-liners
+- Clipboard-to-shell behavioral rules (EDR); RunMRU & Explorer MRU forensics
+- 'DNS anomalies: high-entropy TXT responses (nslookup staging)'
+mitigations:
+- ASR rules + SmartScreen; PowerShell Constrained Language Mode
+- Block Office/child-process LOLBin chains at EDR policy level
+- 'Browser controls: restrict clipboard-write APIs on uncategorized sites'
+- 'Training that names the trick: ''no real CAPTCHA asks you to paste into Run'''
+refs:
+- title: ClickGrab — ClickFix technique catalog (mhaggis)
+  url: https://mhaggis.github.io/ClickGrab/techniques.html
+- title: ClickFix Hunter (campaign tracker)
+  url: https://clickfix.carsonww.com/
+- title: Microsoft threat intelligence
+  url: https://www.microsoft.com/en-us/security/security-insider/microsoft-threat-intelligence
+since: 2024 (named by Proofpoint) / 2025-26 (variant explosion)

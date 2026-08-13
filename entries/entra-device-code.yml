@@ -1,0 +1,50 @@
+# LOLPHISH entry — Device Code Flow Phishing
+id: entra-device-code
+name: Device Code Flow Phishing
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+summary: RFC 8628 device authorization grant — built so input-constrained devices (TVs, consoles, IoT)
+  can sign in by having the user enter a short code on a second device at a real vendor URL.
+abuse: Attacker initiates a device code flow unauthenticated, then lures the victim to the genuine login
+  page (microsoft.com/devicelogin) to enter the attacker's code. The victim completes their own MFA on
+  Microsoft's real infrastructure — there is no phish page, no fake domain, nothing to block at the perimeter.
+  The attacker polls the token endpoint and walks away with access + refresh tokens. Refresh tokens self-renew
+  for ~90 days, and targeting the Microsoft Authentication Broker client ID escalates to PRT-grade persistence
+  that survives password resets.
+variants:
+- Microsoft Authentication Broker client ID targeting (PRT / device registration path)
+- Teams/phone-call lure ('enter this code to join the meeting')
+- QR-delivered codes (device code + quishing hybrid)
+- Azure CLI / Azure PowerShell client IDs for scope selection
+kits:
+- EvilTokens
+- Kali365 / Octopi365
+- SquarePhish2
+- TokenTactics (POC)
+- Storm-2372 (actor)
+surfaces:
+- microsoft.com/devicelogin
+- login.microsoftonline.com
+attack:
+- T1566 — Phishing
+- T1528 — Steal Application Access Token
+- T1550.001 — Use Alternate Authentication Material
+detections:
+- 'Entra sign-in logs: authenticationProtocol = deviceCodeFlow (hunt for source ASNs in hosting ranges
+  — e.g. Tencent AS132203 in the Kali365 campaign)'
+- 'M365 Defender: ''Device code flow phishing'' related alerts; impossible-travel + device-code combo'
+- Correlate lure-hosting referrers (Canva, shorteners) with devicelogin completions
+mitigations:
+- Conditional Access authentication-flows policy to block device code flow (Microsoft auto-provisions
+  this for tenants now — verify, don't assume)
+- Token protection / CA session controls to bind tokens to device
+- 'User training: you never ''enter a code'' to join a meeting'
+refs:
+- title: Microsoft — Storm-2372 device code phishing campaign
+  url: https://www.microsoft.com/en-us/security/blog/2025/02/13/storm-2372-conducts-device-code-phishing-campaign/
+- title: Huntress — Anatomy of the Kali365 / Octopi365 PhaaS kit
+  url: https://www.huntress.com/blog/kali365-device-code-phishing-kit
+- title: RFC 8628 — OAuth 2.0 Device Authorization Grant
+  url: https://datatracker.ietf.org/doc/html/rfc8628
+since: 2021 (POCs) / 2024-25 (mass campaigns)
