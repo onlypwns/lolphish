@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOLPHISH — Living Off Legitimate Phishing Infrastructure</title>
+<meta name="description" content="A LOLBAS-style catalog of legitimate services, identity flows, and trust surfaces abused for phishing. Built for defenders.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='80' fill='%237fe8e8' font-family='monospace'>&lt;&gt;&lt;</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>LOL<span class="fish">&lt;&gt;&lt;</span>PHISH</h1>
+    <span class="tagline">Living Off Legitimate Phishing Infrastructure</span>
+  </div>
+  <div class="header-stats">
+    <span><b id="stat-entries">0</b> entries</span>
+    <span><b id="stat-variants">0</b> variants</span>
+    <span><b id="stat-kits">0</b> kits &amp; actors</span>
+  </div>
+</header>
+
+<div class="filterbar">
+  <div class="search-wrap">
+    <span class="prompt">&gt;</span>
+    <input id="search" type="text" placeholder="Search primitives, kits, vendors, surfaces…" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="select-wrap">
+    <label for="f-category">Category</label>
+    <select id="f-category"><option value="">All</option></select>
+  </div>
+  <div class="select-wrap">
+    <label for="f-vendor">Vendor</label>
+    <select id="f-vendor"><option value="">All</option></select>
+  </div>
+  <div class="count-note" id="count"></div>
+</div>
+
+<main>
+  <section>
+    <div class="table-head">
+      <span>Abuse Primitive</span>
+      <span>Category</span>
+      <span class="h-vendor">Vendors</span>
+      <span class="h-variants" style="text-align:right">Variants</span>
+    </div>
+    <div id="table"></div>
+  </section>
+
+  <aside class="detail">
+    <div id="detail-inner"></div>
+  </aside>
+</main>
+
+<section class="about">
+  <div>
+    <h3>What this is</h3>
+    <p>LOLBAS catalogs abusable binaries. LOTS catalogs abusable domains. LOLPHISH catalogs the layer in between and beyond: the legitimate <b>mechanisms</b> — auth flows, notification pipelines, hosting surfaces, social-engineering primitives — that phishing industrialized on top of.</p>
+  </div>
+  <div>
+    <h3>Entry anatomy</h3>
+    <p>Each entry documents the legitimate purpose, the abuse primitive, named variants, known kits and actors, trust surfaces, ATT&amp;CK mappings, detection telemetry, and the structural mitigation — not just the IOC of the week.</p>
+  </div>
+  <div>
+    <h3>Defensive use only</h3>
+    <p>Everything here is publicly documented research, structured for detection engineering and threat modeling. If you find a technique useful, your job is to go kill it in your environment.</p>
+  </div>
+  <div>
+    <h3>Siblings &amp; sources</h3>
+    <p><a href="https://lots-project.com/" target="_blank" rel="noopener">LOTS Project</a> · <a href="https://mhaggis.github.io/ClickGrab/techniques.html" target="_blank" rel="noopener">ClickGrab</a> · <a href="https://clickfix.carsonww.com/" target="_blank" rel="noopener">ClickFix Hunter</a> · <a href="https://entrascopes.com/" target="_blank" rel="noopener">entrascopes</a> · <a href="https://lolbas-project.github.io/" target="_blank" rel="noopener">LOLBAS</a></p>
+  </div>
+</section>
+
+<footer>
+  <span>LOLPHISH v0.1 — community catalog, WIP</span>
+  <span>the phish is the platform</span>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
