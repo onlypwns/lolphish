@@ -51,6 +51,17 @@ detections:
   instead)'
 - 'Email/proxy: any device.sso.<region>.amazonaws.com URL in inbound mail is suspicious — these links
   are generated locally, never legitimately emailed'
+detection_code:
+- lang: kql
+  query: |
+    AWSCloudTrail
+    | where EventSource == "sso.amazonaws.com" and EventName == "CreateToken"
+    | extend GrantType = tostring(parse_json(RequestParameters).grantType)
+    | where GrantType == "urn:ietf:params:oauth:grant-type:device_code"
+    | project TimeGenerated, User, SourceIpAddress, UserAgent, EventName, GrantType
+    | sort by TimeGenerated desc
+  description: Find classic AWS Identity Center device-code token grants after migration to PKCE.
+  source: LOLPHISH
 mitigations:
 - Upgrade AWS CLI to 2.22.0+ (PKCE flow default) and migrate users off device code — then alert on any
   remaining device_code CreateToken as anomalous

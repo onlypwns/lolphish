@@ -251,6 +251,32 @@ ul.ticklist li::before {
 }
 .since b { color: var(--text); font-weight: 500; }
 
+/* ---------- detection code blocks ---------- */
+.code-wrap { margin-bottom: 16px; }
+.code-wrap:last-child { margin-bottom: 0; }
+.code-meta {
+  font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--aqua); margin-bottom: 4px;
+}
+.code-desc {
+  font-size: 11px; color: var(--text);
+  margin-bottom: 6px;
+}
+pre {
+  background: var(--bg-sunk);
+  border: 1px solid var(--border-lit);
+  border-left: 2px solid var(--aqua);
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+code {
+  font-family: "IBM Plex Mono", "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-strong);
+  white-space: pre;
+}
+
 /* ---------- sticky detail panel ---------- */
 aside.detail {
   border-left: 1px solid var(--border);

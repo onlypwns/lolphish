@@ -46,6 +46,26 @@ detections:
 - PowerShell 4104 script-block logging on paste-style one-liners
 - Clipboard-to-shell behavioral rules (EDR); RunMRU & Explorer MRU forensics
 - 'DNS anomalies: high-entropy TXT responses (nslookup staging)'
+detection_code:
+- lang: kql
+  query: |
+    DeviceProcessEvents
+    | where InitiatingProcessFileName =~ "explorer.exe"
+    | where FileName in~ ("powershell.exe", "mshta.exe", "curl.exe", "certutil.exe", "wscript.exe", "cscript.exe")
+    | where ProcessCommandLine matches regex @"(?i)(http|powershell|mshta|certutil|curl|iex|invoke-expression)"
+    | project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessCommandLine
+    | sort by Timestamp desc
+  description: Paste-to-run chains launched from Explorer/Run dialog/File Explorer address bar.
+  source: LOLPHISH
+- lang: kql
+  query: |
+    DeviceEvents
+    | where ActionType contains "PowerShell" and AdditionalFields has_any ("IEX", "Invoke-Expression",
+          "bitsadmin", "certutil", "mshta", "curl")
+    | project Timestamp, DeviceName, AccountName, AdditionalFields
+    | sort by Timestamp desc
+  description: PowerShell script-block events containing common ClickFix payload stagers.
+  source: LOLPHISH
 mitigations:
 - ASR rules + SmartScreen; PowerShell Constrained Language Mode
 - Block Office/child-process LOLBin chains at EDR policy level

@@ -27,6 +27,24 @@
     "surfaces":   { "type": "array", "items": { "type": "string" }, "minItems": 1 },
     "attack":     { "type": "array", "items": { "type": "string", "pattern": "^T[0-9]{4}" }, "minItems": 1 },
     "detections": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "detection_code": {
+      "type": "array",
+      "description": "Optional detection-as-code snippets (KQL, Sigma, Splunk, etc.)",
+      "items": {
+        "type": "object",
+        "required": ["lang", "query"],
+        "additionalProperties": false,
+        "properties": {
+          "lang": {
+            "type": "string",
+            "enum": ["kql", "sigma", "splunk", "yara", "generic"]
+          },
+          "query": { "type": "string", "minLength": 10 },
+          "description": { "type": "string" },
+          "source": { "type": "string" }
+        }
+      }
+    },
     "mitigations":{ "type": "array", "items": { "type": "string" }, "minItems": 1 },
     "refs": {
       "type": "array", "minItems": 1,

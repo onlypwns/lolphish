@@ -35,6 +35,17 @@ detections:
   — e.g. Tencent AS132203 in the Kali365 campaign)'
 - 'M365 Defender: ''Device code flow phishing'' related alerts; impossible-travel + device-code combo'
 - Correlate lure-hosting referrers (Canva, shorteners) with devicelogin completions
+detection_code:
+- lang: kql
+  query: |
+    SigninLogs
+    | where AuthenticationProtocol == "deviceCodeFlow"
+    | where RiskState != "remediated" or isempty(RiskState)
+    | project TimeGenerated, UserPrincipalName, IPAddress, Location, AppDisplayName,
+              ClientAppUsed, RiskState, RiskLevelDuringSignIn
+    | sort by TimeGenerated desc
+  description: Surface all device-code-flow sign-ins; correlate IP/location with recent MFA events.
+  source: LOLPHISH
 mitigations:
 - Conditional Access authentication-flows policy to block device code flow (Microsoft auto-provisions
   this for tenants now — verify, don't assume)

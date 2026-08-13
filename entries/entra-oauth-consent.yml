@@ -33,6 +33,19 @@ detections:
 - 'Entra audit: ''Consent to application'' events; new service principals with mail scopes'
 - 'Defender for Cloud Apps: risky OAuth app / unusual consent alerts'
 - 'Google Workspace token audit: new grants by unverified apps'
+detection_code:
+- lang: kql
+  query: |
+    AuditLogs
+    | where OperationName == "Consent to application"
+    | extend ConsentType = tostring(parse_json(tostring(parse_json(TargetResources[0].modifiedProperties)[0])).newValue)
+    | extend Scope = tostring(parse_json(tostring(parse_json(TargetResources[0].modifiedProperties)[1])).newValue)
+    | where Scope has_any ("Mail.Read", "Mail.Send", "Files.Read.All", "offline_access")
+    | project TimeGenerated, OperationName, InitiatedBy, AppDisplayName = TargetResources[0].displayName,
+              ConsentType, Scope
+    | sort by TimeGenerated desc
+  description: New Entra OAuth grants requesting mail/file scopes — hunt for suspicious apps and consent types.
+  source: LOLPHISH
 mitigations:
 - Disable user consent or restrict to verified publishers + low-impact scopes
 - Admin consent workflow with scope review

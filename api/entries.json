@@ -114,6 +114,14 @@
         "Volume anomaly: sso:ListAccountRoles spike for a single user (normal UI flow uses internal portal endpoints instead)",
         "Email/proxy: any device.sso.<region>.amazonaws.com URL in inbound mail is suspicious — these links are generated locally, never legitimately emailed"
       ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "AWSCloudTrail\n| where EventSource == \"sso.amazonaws.com\" and EventName == \"CreateToken\"\n| extend GrantType = tostring(parse_json(RequestParameters).grantType)\n| where GrantType == \"urn:ietf:params:oauth:grant-type:device_code\"\n| project TimeGenerated, User, SourceIpAddress, UserAgent, EventName, GrantType\n| sort by TimeGenerated desc\n",
+          "description": "Find classic AWS Identity Center device-code token grants after migration to PKCE.",
+          "source": "LOLPHISH"
+        }
+      ],
       "mitigations": [
         "Upgrade AWS CLI to 2.22.0+ (PKCE flow default) and migrate users off device code — then alert on any remaining device_code CreateToken as anomalous",
         "Block device.sso.<region>.amazonaws.com at the corporate proxy/EDR — kills device flow on managed devices",
@@ -295,6 +303,20 @@
         "Clipboard-to-shell behavioral rules (EDR); RunMRU & Explorer MRU forensics",
         "DNS anomalies: high-entropy TXT responses (nslookup staging)"
       ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "DeviceProcessEvents\n| where InitiatingProcessFileName =~ \"explorer.exe\"\n| where FileName in~ (\"powershell.exe\", \"mshta.exe\", \"curl.exe\", \"certutil.exe\", \"wscript.exe\", \"cscript.exe\")\n| where ProcessCommandLine matches regex @\"(?i)(http|powershell|mshta|certutil|curl|iex|invoke-expression)\"\n| project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessCommandLine\n| sort by Timestamp desc\n",
+          "description": "Paste-to-run chains launched from Explorer/Run dialog/File Explorer address bar.",
+          "source": "LOLPHISH"
+        },
+        {
+          "lang": "kql",
+          "query": "DeviceEvents\n| where ActionType contains \"PowerShell\" and AdditionalFields has_any (\"IEX\", \"Invoke-Expression\",\n      \"bitsadmin\", \"certutil\", \"mshta\", \"curl\")\n| project Timestamp, DeviceName, AccountName, AdditionalFields\n| sort by Timestamp desc\n",
+          "description": "PowerShell script-block events containing common ClickFix payload stagers.",
+          "source": "LOLPHISH"
+        }
+      ],
       "mitigations": [
         "ASR rules + SmartScreen; PowerShell Constrained Language Mode",
         "Block Office/child-process LOLBin chains at EDR policy level",
@@ -353,6 +375,14 @@
         "M365 Defender: 'Device code flow phishing' related alerts; impossible-travel + device-code combo",
         "Correlate lure-hosting referrers (Canva, shorteners) with devicelogin completions"
       ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "SigninLogs\n| where AuthenticationProtocol == \"deviceCodeFlow\"\n| where RiskState != \"remediated\" or isempty(RiskState)\n| project TimeGenerated, UserPrincipalName, IPAddress, Location, AppDisplayName,\n          ClientAppUsed, RiskState, RiskLevelDuringSignIn\n| sort by TimeGenerated desc\n",
+          "description": "Surface all device-code-flow sign-ins; correlate IP/location with recent MFA events.",
+          "source": "LOLPHISH"
+        }
+      ],
       "mitigations": [
         "Conditional Access authentication-flows policy to block device code flow (Microsoft auto-provisions this for tenants now — verify, don't assume)",
         "Token protection / CA session controls to bind tokens to device",
@@ -410,6 +440,14 @@
         "Entra audit: 'Consent to application' events; new service principals with mail scopes",
         "Defender for Cloud Apps: risky OAuth app / unusual consent alerts",
         "Google Workspace token audit: new grants by unverified apps"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "AuditLogs\n| where OperationName == \"Consent to application\"\n| extend ConsentType = tostring(parse_json(tostring(parse_json(TargetResources[0].modifiedProperties)[0])).newValue)\n| extend Scope = tostring(parse_json(tostring(parse_json(TargetResources[0].modifiedProperties)[1])).newValue)\n| where Scope has_any (\"Mail.Read\", \"Mail.Send\", \"Files.Read.All\", \"offline_access\")\n| project TimeGenerated, OperationName, InitiatedBy, AppDisplayName = TargetResources[0].displayName,\n          ConsentType, Scope\n| sort by TimeGenerated desc\n",
+          "description": "New Entra OAuth grants requesting mail/file scopes — hunt for suspicious apps and consent types.",
+          "source": "LOLPHISH"
+        }
       ],
       "mitigations": [
         "Disable user consent or restrict to verified publishers + low-impact scopes",

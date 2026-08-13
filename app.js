@@ -42,10 +42,11 @@
     if (state.category && e.category !== state.category) return false;
     if (state.vendor && !e.vendors.includes(state.vendor)) return false;
     if (state.q) {
+      const codeHay = (e.detection_code || []).map(c => [c.lang, c.query, c.description].join(" ")).join(" ");
       const hay = [
         e.name, e.category, e.vendors.join(" "), e.summary, e.abuse,
         e.variants.join(" "), e.kits.join(" "), e.surfaces.join(" "),
-        e.attack.join(" "), e.detections.join(" "), e.mitigations.join(" ")
+        e.attack.join(" "), e.detections.join(" "), e.mitigations.join(" "), codeHay
       ].join(" ").toLowerCase();
       if (!hay.includes(state.q)) return false;
     }
@@ -81,6 +82,14 @@
       `<div class="sect${wide ? " wide" : ""}"><h4><span class="tick">#</span>${title}</h4>${inner}</div>`;
     const list = (arr) => `<ul class="ticklist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
     const tags = (arr, cls) => `<div class="tagrow">${arr.map(x => `<span class="tag ${cls}">${esc(x)}</span>`).join("")}</div>`;
+    const codeBlock = (snip) => {
+      const meta = [snip.lang.toUpperCase(), snip.source].filter(Boolean).join(" · ");
+      return `<div class="code-wrap">
+        <div class="code-meta">${esc(meta)}</div>
+        ${snip.description ? `<p class="code-desc">${esc(snip.description)}</p>` : ""}
+        <pre><code>${esc(snip.query)}</code></pre>
+      </div>`;
+    };
 
     return `
       <div class="body-inner">
@@ -89,6 +98,7 @@
         ${sect(`Variants (${e.variants.length})`, list(e.variants))}
         ${sect("Kits / Actors / Tooling", tags(e.kits, "kit"))}
         ${sect("Detection & hunting", list(e.detections))}
+        ${e.detection_code && e.detection_code.length ? sect(`Detection code (${e.detection_code.length})`, e.detection_code.map(codeBlock).join(""), true) : ""}
         ${sect("Structural mitigations", list(e.mitigations))}
         ${sect("Trust surfaces", tags(e.surfaces, "surface"))}
         ${sect("ATT&CK", list(e.attack))}

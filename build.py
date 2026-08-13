@@ -41,7 +41,8 @@ CATEGORY_META = {
 }
 
 FIELD_ORDER = ["id", "name", "category", "vendors", "summary", "abuse", "variants",
-               "kits", "surfaces", "attack", "detections", "mitigations", "refs", "since"]
+               "kits", "surfaces", "attack", "detections", "detection_code",
+               "mitigations", "refs", "since"]
 
 
 def fail(msg):

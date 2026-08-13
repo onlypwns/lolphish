@@ -58,6 +58,16 @@ detections:
   - "Log source: field = value — why it fires"
   - "Correlation logic across events"
 
+# Optional detection-as-code snippets. lang: kql | sigma | splunk | yara | generic
+detection_code:
+  - lang: kql
+    query: |
+      TableName
+      | where Field == "value"
+      | summarize count() by Account
+    description: "One-line explanation of what the query hunts for"
+    source: "Your name / URL"
+
 # Structural controls. Not "user awareness" alone — the thing that
 # actually kills or constrains the primitive.
 mitigations:
