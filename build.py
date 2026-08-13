@@ -118,8 +118,8 @@ def build(entries):
         json.dump({"version": "0.2", "generated_by": "lolphish build.py",
                    "stats": stats, "entries": entries}, f, indent=2, ensure_ascii=False)
 
-    print(f"OK — {stats['entries']} entries, {stats['variants']} variants, "
-          f"{stats['kits']} kits/actors → data.js + api/entries.json")
+    print(f"OK - {stats['entries']} entries, {stats['variants']} variants, "
+          f"{stats['kits']} kits/actors -> data.js + api/entries.json")
 
 
 def main():

@@ -1,0 +1,44 @@
+# Check that all reference URLs in entries/*.yml and documentation are reachable.
+# Runs on PRs and weekly against main. Lychee tolerates transient failures,
+# but persistent 404s should be fixed before merge.
+
+name: Link check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "entries/**"
+      - "README.md"
+      - "CONTRIBUTING.md"
+  schedule:
+    # Weekly on Sunday at 09:17 UTC (avoid the :00 herd)
+    - cron: "17 9 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check links with lychee
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >
+            --no-progress
+            --timeout 30
+            --retry-wait-time 5
+            --max-retries 3
+            --exclude-loopback
+            --exclude-mail
+            README.md
+            CONTRIBUTING.md
+            entries/*.yml
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

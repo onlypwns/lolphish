@@ -38,6 +38,6 @@ mitigations:
 - SEG coverage for invite-body URLs
 - Block external .ics at gateway for high-risk user groups
 refs:
-- title: Google Calendar — invitation settings
-  url: https://support.google.com/calendar/
+- title: Google Workspace Updates — Prevent unwanted invitations from being added to your calendar
+  url: https://workspaceupdates.googleblog.com/2021/12/prevent-unwanted-invitations-from-being.html
 since: 2019 (first waves) / 2024+ (resurgence + AI angle)

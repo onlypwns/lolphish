@@ -1,4 +1,4 @@
-/* GENERATED FILE — do not edit. Source of truth: entries/*.yml (run build.py) */
+/* GENERATED FILE � do not edit. Source of truth: entries/*.yml (run build.py) */
 
 const ENTRIES = [
   {
@@ -56,8 +56,8 @@ const ENTRIES = [
         "url": "https://github.com/kgretzky/evilginx2"
       },
       {
-        "title": "Microsoft — token theft / AiTM guidance",
-        "url": "https://learn.microsoft.com/en-us/security/"
+        "title": "Microsoft — Detecting and mitigating a multi-stage AiTM phishing and BEC campaign",
+        "url": "https://www.microsoft.com/en-us/security/blog/2023/06/08/detecting-and-mitigating-a-multi-stage-aitm-phishing-and-bec-campaign/"
       }
     ],
     "since": "2018 (Modlishka) / 2022+ (PhaaS industrialization)"
@@ -175,8 +175,8 @@ const ENTRIES = [
     ],
     "refs": [
       {
-        "title": "Google Calendar — invitation settings",
-        "url": "https://support.google.com/calendar/"
+        "title": "Google Workspace Updates — Prevent unwanted invitations from being added to your calendar",
+        "url": "https://workspaceupdates.googleblog.com/2021/12/prevent-unwanted-invitations-from-being.html"
       }
     ],
     "since": "2019 (first waves) / 2024+ (resurgence + AI angle)"
@@ -702,8 +702,8 @@ const ENTRIES = [
     ],
     "refs": [
       {
-        "title": "Microsoft — QR phishing guidance",
-        "url": "https://learn.microsoft.com/en-us/security/"
+        "title": "Microsoft — Protect your organizations against QR code phishing with Defender for Office 365",
+        "url": "https://techcommunity.microsoft.com/blog/microsoftdefenderforoffice365blog/protect-your-organizations-against-qr-code-phishing-with-defender-for-office-365/4007041"
       }
     ],
     "since": "2023 (mass campaigns)"
@@ -758,6 +758,10 @@ const ENTRIES = [
       {
         "title": "LOTS Project — abused trusted sites",
         "url": "https://lots-project.com/"
+      },
+      {
+        "title": "DocuSign — Safety alerts and updates",
+        "url": "https://www.docusign.com/trust/safety-alerts"
       }
     ],
     "since": "2019+ (industrialized 2023+)"
@@ -950,11 +954,11 @@ const STATS = {
 const CATEGORY_META = {
   "Identity Flow Abuse": {
     "color": "#6fd3d3",
-    "blurb": "Abused auth mechanisms — the phish happens on the real login page"
+    "blurb": "Abused auth mechanisms � the phish happens on the real login page"
   },
   "User-Assisted Execution": {
     "color": "#d3b46f",
-    "blurb": "The victim is the dropper — clipboard, QR, paste-to-run tricks"
+    "blurb": "The victim is the dropper � clipboard, QR, paste-to-run tricks"
   },
   "Trusted Delivery": {
     "color": "#b48fd3",

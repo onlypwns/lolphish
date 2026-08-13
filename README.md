@@ -48,25 +48,43 @@ Every entry is a full record, LOLBAS-style:
 ## Repository layout
 
 ```
-├── index.html        # the site (generated/hand-built)
-├── styles.css
+├── entries/          # one YAML file per catalog entry (source of truth)
+│   ├── _template.yml # annotated template for new entries
+│   └── *.yml         # individual technique records
+├── schema/
+│   └── entry.schema.json   # JSON Schema enforced in CI
+├── build.py          # validates entries/*.yml and regenerates data.js + api/entries.json
 ├── app.js            # renderer: filterable accordion table + detail panel
-├── data.js           # the catalog (v0.1 — single-file data)
+├── data.js           # generated catalog consumed by the site
+├── api/
+│   └── entries.json  # machine-readable feed for downstream tooling
+├── index.html
+├── styles.css
 └── README.md
 ```
 
-> **Roadmap:** migrate `data.js` → `entries/*.yml` (one YAML file per entry) with a JSON-schema-validated build script and GitHub Actions — the same contribution model that scaled LOLBAS. PR an entry by copying `_template.yml`, no site code touched.
+> **Contribution model:** copy `entries/_template.yml`, fill it in, and PR the new YAML. CI validates it against the schema and rebuilds `data.js` + `api/entries.json` on merge. No site code needs to be touched.
 
 ## Running locally
 
-No build step. Serve the folder with anything:
+### Preview the built site
+
+`data.js` is generated from `entries/*.yml`, so start with a build:
 
 ```bash
+pip install -r requirements.txt
+python3 build.py
 python3 -m http.server 8080
 # → http://localhost:8080
 ```
 
-(Opening `index.html` directly from disk also works — no fetch() calls, data is a plain script include.)
+### Validate entries without building
+
+```bash
+python3 build.py --check
+```
+
+Opening `index.html` directly from disk also works after `build.py` has run — data is a plain script include.
 
 ## Contributing
 

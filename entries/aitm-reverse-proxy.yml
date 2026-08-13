@@ -47,6 +47,6 @@ mitigations:
 refs:
 - title: Evilginx (reference kit)
   url: https://github.com/kgretzky/evilginx2
-- title: Microsoft — token theft / AiTM guidance
-  url: https://learn.microsoft.com/en-us/security/
+- title: Microsoft — Detecting and mitigating a multi-stage AiTM phishing and BEC campaign
+  url: https://www.microsoft.com/en-us/security/blog/2023/06/08/detecting-and-mitigating-a-multi-stage-aitm-phishing-and-bec-campaign/
 since: 2018 (Modlishka) / 2022+ (PhaaS industrialization)

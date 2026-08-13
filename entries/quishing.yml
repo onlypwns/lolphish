@@ -36,6 +36,6 @@ mitigations:
 - Block/banner image-only emails from external senders
 - MFA re-registration flows that never involve a mailed QR
 refs:
-- title: Microsoft — QR phishing guidance
-  url: https://learn.microsoft.com/en-us/security/
+- title: Microsoft — Protect your organizations against QR code phishing with Defender for Office 365
+  url: https://techcommunity.microsoft.com/blog/microsoftdefenderforoffice365blog/protect-your-organizations-against-qr-code-phishing-with-defender-for-office-365/4007041
 since: 2023 (mass campaigns)
