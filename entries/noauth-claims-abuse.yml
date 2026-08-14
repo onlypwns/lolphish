@@ -1,0 +1,85 @@
+# LOLPHISH entry — nOAuth / Mutable Token Claims Abuse
+id: noauth-claims-abuse
+name: nOAuth / Mutable Token Claims Abuse
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+summary: >
+  Multi-tenant Entra ID applications that use mutable user-profile claims — such as email,
+  department, jobTitle, companyName, or extension attributes — as identity or authorization inputs
+  trust data that the user (or any identity with User.ReadWrite.All) can modify.
+abuse: An attacker changes a mutable claim on their own user object in their own tenant (or any tenant where
+  they have access), then authenticates to the target multi-tenant app. The app reads the attacker-controlled
+  claim and treats the attacker as a privileged user (e.g., admin, HR, manager). Post-June 2023 Microsoft
+  removes unverified domain emails from tokens by default, but the same anti-pattern persists across many
+  other profile attributes and custom claims.
+variants:
+- "email claim spoofing in multi-tenant apps that use email as a unique identifier"
+- "department, jobTitle, companyName, officeLocation claim flip to unlock admin routes"
+- "Extension attribute (extension_*) mutation to satisfy custom app authorization gates"
+- Cross-tenant authentication with mismatched email/home-tenant domains
+kits:
+- Microsoft Graph API (PATCH /me or /users/{id})
+- Any ROPC/token tool that can obtain a Graph token for the attacker's user
+surfaces:
+- login.microsoftonline.com common endpoint
+- Target multi-tenant app consent/sign-in flow
+- Microsoft Graph /v1.0/me endpoint
+attack:
+- "T1078.004 — Valid Accounts: Cloud Accounts"
+- T1134 — Access Token Manipulation
+- T1098 — Account Manipulation
+detections:
+- AuditLogs "Update user" where Target is the same user and ModifiedProperties contains Department/JobTitle/CompanyName/Email
+- Sign-in to admin-gated app within minutes of self-claimed attribute change
+- Cross-tenant sign-ins where `xms_edov` optional claim is false (unverified email)
+- Multiple users from different home tenants authenticating with identical email claims
+mitigations:
+- Applications must use immutable claims (`sub`, `oid`, `tid`) for identity and look up authorization roles in a backend store
+- Enable and enforce the `xms_edov` optional claim to verify email ownership
+- Audit apps reading `department`, `jobTitle`, `companyName`, or extension attributes from id_token without server-side verification
+- Restrict self-service profile updates for sensitive attributes via directory settings
+detection_code:
+- lang: kql
+  query: |
+    AuditLogs
+    | where TimeGenerated > ago(24h)
+    | where OperationName == "Update user"
+    | where Result == "success"
+    | extend
+        ActorUPN  = tostring(InitiatedBy.user.userPrincipalName),
+        TargetUPN = tostring(TargetResources[0].userPrincipalName),
+        Props     = TargetResources[0].modifiedProperties
+    | mv-expand Props
+    | where Props.displayName in ("Department", "JobTitle", "CompanyName", "Mail")
+    | where ActorUPN == TargetUPN  // Self-modified claim
+    | project TimeGenerated, ActorUPN, TargetUPN, ModifiedProperty = Props.displayName,
+              OldValue = Props.oldValue, NewValue = Props.newValue
+    | sort by TimeGenerated desc
+  description: Users modifying their own profile attributes that are commonly abused as authorization claims.
+  source: Threat Hunting Wiki — T008 noauth-claims-abuse
+- lang: kql
+  query: |
+    let ClaimChanges = AuditLogs
+    | where TimeGenerated > ago(24h)
+    | where OperationName == "Update user"
+    | extend TargetUPN = tostring(TargetResources[0].userPrincipalName)
+    | mv-expand Props = TargetResources[0].modifiedProperties
+    | where Props.displayName in ("Department", "JobTitle", "CompanyName", "Mail")
+    | project ChangeTime = TimeGenerated, TargetUPN, NewValue = Props.newValue;
+    SigninLogs
+    | where TimeGenerated > ago(24h)
+    | where ResultType == 0
+    | project SignInTime = TimeGenerated, UserPrincipalName, AppDisplayName, IPAddress, Location
+    | join kind=inner ClaimChanges on $left.UserPrincipalName == $right.TargetUPN
+    | where SignInTime > ChangeTime and SignInTime < datetime_add('minute', 15, ChangeTime)
+    | project ChangeTime, SignInTime, UserPrincipalName, AppDisplayName, IPAddress, NewValue
+    | sort by ChangeTime desc
+  description: Sign-in to an app within 15 minutes of a self-modified profile claim — potential claim-flip exploitation.
+  source: Threat Hunting Wiki — T008 noauth-claims-abuse
+refs:
+- title: Microsoft — Token claims reference
+  url: https://learn.microsoft.com/en-us/entra/identity-platform/id-token-claims-reference
+- title: Microsoft — Add optional claims to tokens
+  url: https://learn.microsoft.com/en-us/entra/identity-platform/optional-claims
+since: 2023 (nOAuth disclosure) / ongoing in multi-tenant app misconfigurations

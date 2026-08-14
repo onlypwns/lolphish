@@ -37,15 +37,45 @@ detection_code:
 - lang: kql
   query: |
     AuditLogs
+    | where TimeGenerated > ago(24h)
     | where OperationName == "Consent to application"
-    | extend ConsentType = tostring(parse_json(tostring(parse_json(TargetResources[0].modifiedProperties)[0])).newValue)
-    | extend Scope = tostring(parse_json(tostring(parse_json(TargetResources[0].modifiedProperties)[1])).newValue)
-    | where Scope has_any ("Mail.Read", "Mail.Send", "Files.Read.All", "offline_access")
-    | project TimeGenerated, OperationName, InitiatedBy, AppDisplayName = TargetResources[0].displayName,
-              ConsentType, Scope
+    | where Result == "success"
+    | extend
+        SpObjectId = tostring(TargetResources[0].id),
+        AppName    = tostring(TargetResources[0].displayName),
+        ActorUPN   = tostring(InitiatedBy.user.userPrincipalName),
+        ActorIP    = tostring(InitiatedBy.user.ipAddress)
+    | extend Permissions = tostring(TargetResources[0].modifiedProperties)
+    | where Permissions has_any ("Chat.Read", "Mail.Read", "Mail.Send", "Files.Read", "Files.ReadWrite", "offline_access")
+    | project TimeGenerated, ActorUPN, ActorIP, AppName, SpObjectId, Permissions
     | sort by TimeGenerated desc
-  description: New Entra OAuth grants requesting mail/file scopes — hunt for suspicious apps and consent types.
-  source: LOLPHISH
+  description: New successful Entra OAuth grants requesting sensitive mail/file/chat scopes.
+  source: Threat Hunting Wiki — D010 illicit-consent-detection
+- lang: kql
+  query: |
+    let HomeTenantId = "YOUR_TENANT_ID";
+    AuditLogs
+    | where TimeGenerated > ago(7d)
+    | where OperationName == "Consent to application"
+    | where Result == "success"
+    | extend
+        SpObjectId = tostring(TargetResources[0].id),
+        AppName    = tostring(TargetResources[0].displayName),
+        ActorUPN   = tostring(InitiatedBy.user.userPrincipalName),
+        ActorIP    = tostring(InitiatedBy.user.ipAddress)
+    | join kind=inner (
+        AADServicePrincipalSignInLogs
+        | where TimeGenerated > ago(7d)
+        | where ResultType == 0
+        | extend CallerTenantId = tostring(todynamic(Claims)["http://schemas.microsoft.com/identity/claims/tenantid"])
+        | where isnotempty(CallerTenantId) and CallerTenantId != HomeTenantId
+        | summarize ExternalTenants = make_set(CallerTenantId), FirstSignIn = min(TimeGenerated),
+                    ResourceList = make_set(ResourceDisplayName) by ServicePrincipalId
+    ) on $left.SpObjectId == $right.ServicePrincipalId
+    | project TimeGenerated, ActorUPN, ActorIP, AppName, SpObjectId, ExternalTenants, ResourceList, FirstSignIn
+    | sort by TimeGenerated desc
+  description: Consent granted to multi-tenant apps whose service principal home tenant is external to your org.
+  source: Threat Hunting Wiki — D010 illicit-consent-detection
 mitigations:
 - Disable user consent or restrict to verified publishers + low-impact scopes
 - Admin consent workflow with scope review

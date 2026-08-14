@@ -1,0 +1,81 @@
+# LOLPHISH entry — PIM Role Activation Abuse
+id: pim-abuse
+name: Privileged Identity Management (PIM) Role Activation Abuse
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+summary: Privileged Identity Management enforces just-in-time activation for eligible Entra ID/Azure AD roles,
+  typically requiring MFA and optionally approval before a user gains privileged access.
+abuse: Two weaknesses make PIM exploitable. First, an access token stolen *before* a role activation inherits
+  the new role's privileges immediately after activation — PIM does not re-evaluate existing tokens. Second,
+  an application with RoleManagement.ReadWrite.Directory can activate eligible roles programmatically,
+  bypassing the approval workflow entirely. The result is privilege escalation without the expected MFA or
+  approval chain.
+variants:
+- Pre-activation token theft → wait/trigger role activation → token now has role privileges
+- Misconfigured web app or compromised SPN activates role without PIM approval
+- Guest/B2B user with eligible role activated by attacker-controlled app
+- Custom role (e.g., Groups Administrator) scoped to a group used to access Key Vault or other resources
+kits:
+- Microsoft Graph PowerShell SDK
+- Custom app with RoleManagement.ReadWrite.Directory
+- roadtx / TokenTacticsV2 (token extraction and refresh)
+surfaces:
+- portal.azure.com / Entra admin center PIM blades
+- Graph API roleManagement/directoryRoleAssignments
+- Misconfigured internal "secureiam"-style helper apps
+attack:
+- T1548 — Abuse Elevation Control Mechanism
+- "T1078.004 — Valid Accounts: Cloud Accounts"
+- T1098 — Account Manipulation
+detections:
+- AuditLogs "Add member to role in PIM (completed)" initiated by an app (InitiatedBy.app)
+- Role activation with no preceding PIM approval request for high-impact roles
+- Group membership changes shortly after a PIM role activation for the same actor
+- Sign-in token `iat` claim predates the role activation timestamp for privileged operations
+mitigations:
+- Require phishing-resistant MFA and approval for all high-impact PIM role activations
+- Audit apps holding RoleManagement.ReadWrite.Directory; remove where not strictly required
+- Use Conditional Access authentication context scoped specifically to PIM activation
+- No permanent active assignments for privileged roles; limit activation windows to 1–2 hours
+- Review eligible assignments for external/B2B guest users
+detection_code:
+- lang: kql
+  query: |
+    AuditLogs
+    | where TimeGenerated > ago(24h)
+    | where OperationName has "Add member to role in PIM"
+    | extend InitiatorType = iff(isnotempty(InitiatedBy.app), "app", "user")
+    | where InitiatorType == "app"
+    | extend
+        AppName = tostring(InitiatedBy.app.displayName),
+        AppId   = tostring(InitiatedBy.app.servicePrincipalId),
+        RoleName = tostring(TargetResources[0].displayName)
+    | project TimeGenerated, OperationName, AppName, AppId, RoleName, InitiatedBy
+    | sort by TimeGenerated desc
+  description: PIM role activations initiated by an application rather than a user — almost never legitimate.
+  source: Threat Hunting Wiki — T023 pim-abuse
+- lang: kql
+  query: |
+    let Activations = AuditLogs
+    | where TimeGenerated > ago(24h)
+    | where OperationName == "Add member to role in PIM (completed)"
+    | extend UPN = tostring(InitiatedBy.user.userPrincipalName)
+    | project ActivationTime = TimeGenerated, UPN, RoleName = TargetResources[0].displayName;
+    AuditLogs
+    | where TimeGenerated > ago(24h)
+    | where OperationName == "Add member to group"
+    | extend UPN = tostring(InitiatedBy.user.userPrincipalName)
+    | join kind=inner Activations on UPN
+    | where TimeGenerated > ActivationTime
+          and TimeGenerated < datetime_add('minute', 15, ActivationTime)
+    | project ActivationTime, GroupAddTime = TimeGenerated, UPN, RoleName, GroupName = TargetResources[0].displayName
+    | sort by ActivationTime desc
+  description: Group membership addition within 15 minutes of a PIM role activation by the same user.
+  source: Threat Hunting Wiki — T023 pim-abuse
+refs:
+- title: Microsoft — PIM role activation settings
+  url: https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-how-to-change-default-settings
+- title: Microsoft — Authentication context in Conditional Access
+  url: https://learn.microsoft.com/en-us/entra/identity/conditional-access/concept-conditional-access-cloud-apps#authentication-context
+since: 2020+ (PIM exploitation in red-team chains)

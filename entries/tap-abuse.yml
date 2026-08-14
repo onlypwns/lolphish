@@ -1,0 +1,73 @@
+# LOLPHISH entry — Temporary Access Pass (TAP) Abuse
+id: tap-abuse
+name: Temporary Access Pass (TAP) Abuse
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+summary: Temporary Access Pass is a time-limited, single-factor code issued by privileged Entra ID roles
+  to let users register MFA methods or recover access without their normal credentials.
+abuse: An attacker who compromises an Authentication Administrator, Privileged Authentication Administrator,
+  or Global Administrator identity can generate a TAP for any user in scope. The victim (or attacker)
+  authenticates with the TAP and bypasses all Conditional Access policies, including MFA and authentication
+  strength requirements. Access tokens remain valid for 70–75 minutes even if the TAP lifetime is only 10 minutes.
+variants:
+- Auth Admin scoped to Administrative Unit creates TAP for targeted sync/user account
+- Compromised service principal or app with Authentication Admin role creates TAP
+- TAP used for cross-tenant directory switch where suppressed consent removes MFA prompt
+- TAP used to bootstrap device registration or MFA method registration for persistence
+kits:
+- Microsoft Graph PowerShell SDK (New-MgUserAuthenticationTemporaryAccessPassMethod)
+- Custom PowerShell / Graph API scripts
+- roadtx / TokenTacticsV2 (token extraction post-TAP)
+surfaces:
+- myaccount.microsoft.com
+- portal.azure.com
+- login.microsoftonline.com
+- Graph API /beta/users/{id}/authentication/temporaryAccessPassMethods
+attack:
+- T1556 — Modify Authentication Process
+- "T1078.004 — Valid Accounts: Cloud Accounts"
+- T1098 — Account Manipulation
+detections:
+- AuditLogs OperationName "Add temporary access pass method" by non-helpdesk workflows
+- SigninLogs where AuthenticationDetail.AuthenticationMethod == "Temporary Access Pass"
+- TAP creation followed within minutes by sign-in from a new IP/geography for the same user
+- Cross-tenant switch (CrossTenantAccessType = B2BCollaboration) shortly after TAP-authenticated session
+mitigations:
+- Restrict TAP policy to specific groups, short lifetime, and isUsableOnce=true
+- Scope Authentication Admin roles to the smallest Administrative Unit required; avoid tenant-wide assignments
+- Alert on every TAP creation and require ticketed approval for privileged users
+- Review cross-tenant access settings; suppress consent only for explicitly trusted tenants
+- Enable Continuous Access Evaluation to shorten token validity where supported
+detection_code:
+- lang: kql
+  query: |
+    AuditLogs
+    | where TimeGenerated > ago(24h)
+    | where OperationName == "Add temporary access pass method"
+    | extend
+        ActorUPN = tostring(InitiatedBy.user.userPrincipalName),
+        ActorIP  = tostring(InitiatedBy.user.ipAddress),
+        TargetUPN = tostring(TargetResources[0].userPrincipalName)
+    | project TimeGenerated, ActorUPN, ActorIP, TargetUPN, OperationName, ResultDescription
+    | sort by TimeGenerated desc
+  description: Every TAP creation event — review actor, target, and justification.
+  source: Threat Hunting Wiki — T022 tap-abuse
+- lang: kql
+  query: |
+    SigninLogs
+    | where TimeGenerated > ago(24h)
+    | where ResultType == 0
+    | extend AuthMethod = tostring(parse_json(AuthenticationDetails)[0].authenticationMethod)
+    | where AuthMethod == "Temporary Access Pass"
+    | project TimeGenerated, UserPrincipalName, IPAddress, Location, AuthMethod,
+              AppDisplayName, ConditionalAccessStatus
+    | sort by TimeGenerated desc
+  description: Sign-ins completed using a Temporary Access Pass.
+  source: Threat Hunting Wiki — T022 tap-abuse
+refs:
+- title: Microsoft — Temporary Access Pass overview
+  url: https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass
+- title: Microsoft — Authentication methods policy
+  url: https://learn.microsoft.com/en-us/entra/identity/authentication/concept-authentication-methods-manage
+since: 2021 (TAP GA) / 2024+ (abuse in CARTE/MCRP chains)

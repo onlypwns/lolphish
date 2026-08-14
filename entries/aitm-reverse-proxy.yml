@@ -40,6 +40,32 @@ detections:
 - Sign-in from hosting/data-center ASN immediately after victim MFA event
 - Impossible travel + token replay alerts; 'stolen session cookie' detections in M365D
 - Passive DNS on kit TLD patterns; proxy-rewrite artifacts (URL-in-URL)
+detection_code:
+- lang: kql
+  query: |
+    SigninLogs
+    | where TimeGenerated > ago(24h)
+    | where ResultType == 0
+    | where AuthenticationRequirement == "multiFactorAuthentication"
+    | extend City = tostring(LocationDetails.city)
+    | extend Country = tostring(LocationDetails.countryOrRegion)
+    | summarize
+        Locations = make_set(pack("city", City, "country", Country)),
+        LocationCount = dcount(City)
+        by UserPrincipalName, bin(TimeGenerated, 1h)
+    | where LocationCount > 1
+  description: Impossible travel within one hour for MFA-completed sign-ins — cookie replay to a different geography.
+  source: Threat Hunting Wiki — D012 aitm-session-theft
+- lang: kql
+  query: |
+    SigninLogs
+    | where TimeGenerated > ago(24h)
+    | where ResultType == 0
+    | where UserAgent has_any ("HeadlessChrome", "PhantomJS") or UserAgent == ""
+    | project TimeGenerated, UserPrincipalName, IPAddress, UserAgent, AppDisplayName
+    | sort by TimeGenerated desc
+  description: Successful sign-ins from headless browser user agents commonly used by AiTM proxy kits.
+  source: Threat Hunting Wiki — D012 aitm-session-theft
 mitigations:
 - Phishing-resistant auth (FIDO2/passkeys) — origin binding defeats relay
 - CA token protection + session controls (sign-in frequency, CAE)

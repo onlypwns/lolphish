@@ -38,14 +38,73 @@ detections:
 detection_code:
 - lang: kql
   query: |
+    let CriticalBypassApps = dynamic([
+        "4813382a-8fa7-425e-ab75-3b753aab3abb",  // Microsoft Authenticator App
+        "9ba1a5c7-f17a-4de9-a1f1-6178c8d51223"   // Microsoft Intune Company Portal
+    ]);
     SigninLogs
+    | where TimeGenerated > ago(24h)
     | where AuthenticationProtocol == "deviceCodeFlow"
-    | where RiskState != "remediated" or isempty(RiskState)
-    | project TimeGenerated, UserPrincipalName, IPAddress, Location, AppDisplayName,
-              ClientAppUsed, RiskState, RiskLevelDuringSignIn
+    | where ResultType == 0
+    | extend
+        City          = tostring(parse_json(LocationDetails).city),
+        Country       = tostring(parse_json(LocationDetails).countryOrRegion),
+        IsCriticalApp = AppId in (CriticalBypassApps)
+    | project
+        TimeGenerated, UserPrincipalName, AppDisplayName, AppId, IPAddress,
+        City, Country, RiskLevelDuringSignIn, ConditionalAccessStatus, IsCriticalApp
+    | extend Severity = case(
+        IsCriticalApp == true,                       "CRITICAL — CA Bypass 3 app",
+        RiskLevelDuringSignIn in ("high","medium"),  "HIGH    — risky sign-in",
+        ConditionalAccessStatus == "notApplied",     "MEDIUM  — CAP not enforced",
+        "LOW     — review"
+      )
     | sort by TimeGenerated desc
-  description: Surface all device-code-flow sign-ins; correlate IP/location with recent MFA events.
-  source: LOLPHISH
+  description: Successful device-code grants; escalates when targeting Authenticator/Intune Company Portal (CA Bypass 3).
+  source: Threat Hunting Wiki — D001 device-code-indicators
+- lang: kql
+  query: |
+    AADNonInteractiveUserSignInLogs
+    | where TimeGenerated > ago(1h)
+    | where ResultType == 50199  // Device code pending — attacker polling
+    | summarize
+        PollCount      = count(),
+        UniqueUsers    = dcount(UserPrincipalName),
+        UniqueApps     = dcount(AppId),
+        TargetUsers    = make_set(UserPrincipalName),
+        Apps           = make_set(AppDisplayName)
+        by IPAddress, bin(TimeGenerated, 15m)
+    | where PollCount > 3 or UniqueUsers > 1
+    | extend ThreatSignal = case(
+        UniqueUsers > 5,  "HIGH — mass campaign",
+        UniqueUsers > 1,  "MEDIUM — multi-target",
+        PollCount > 10,   "MEDIUM — repeated single-target",
+        "LOW — review"
+      )
+    | sort by UniqueUsers desc, PollCount desc
+  description: Dynamic device-code phishing campaigns — mass polling from one IP before any victim authenticates.
+  source: Threat Hunting Wiki — D001 device-code-indicators
+- lang: kql
+  query: |
+    let DeviceCodeGrants = SigninLogs
+    | where TimeGenerated > ago(2h)
+    | where AuthenticationProtocol == "deviceCodeFlow"
+    | where ResultType == 0
+    | project GrantTime = TimeGenerated, UPN = UserPrincipalName, GrantIP = IPAddress, GrantApp = AppDisplayName;
+    let TokenRefreshes = AADNonInteractiveUserSignInLogs
+    | where TimeGenerated > ago(2h)
+    | where ResultType == 0
+    | where AuthenticationProtocol != "deviceCodeFlow"
+    | project RefreshTime = TimeGenerated, UPN = UserPrincipalName, RefreshIP = IPAddress, RefreshApp = AppDisplayName;
+    DeviceCodeGrants
+    | join kind=inner TokenRefreshes on UPN
+    | where RefreshTime > GrantTime and RefreshTime < datetime_add('minute', 30, GrantTime)
+    | where GrantIP == RefreshIP
+    | project UPN, GrantTime, GrantApp, GrantIP, RefreshTime, RefreshApp,
+              MinutesBetween = datetime_diff('minute', RefreshTime, GrantTime)
+    | sort by MinutesBetween asc
+  description: Post-grant FOCI pivot — same-IP cross-app token refresh within 30 minutes of a device-code grant.
+  source: Threat Hunting Wiki — D001 device-code-indicators
 mitigations:
 - Conditional Access authentication-flows policy to block device code flow (Microsoft auto-provisions
   this for tenants now — verify, don't assume)

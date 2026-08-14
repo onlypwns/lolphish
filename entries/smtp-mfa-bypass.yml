@@ -1,0 +1,75 @@
+# LOLPHISH entry — SMTP Auth MFA Bypass
+id: smtp-mfa-bypass
+name: SMTP Auth MFA Bypass / Legacy Protocol Delivery
+category: Trusted Delivery
+vendors:
+- Microsoft 365 / Exchange Online
+summary: SMTP Auth is a legacy mail-sending protocol in Exchange Online. Even when modern authentication
+  and Conditional Access enforce MFA for interactive sign-ins, SMTP Auth can send mail as a user with only
+  username and password — bypassing all CAP controls.
+abuse: A phished or brute-forced password becomes an internal phishing delivery mechanism. The attacker sends
+  lure emails as the compromised user from `smtp.office365.com`, inheriting the user's display name, internal
+  address, and existing conversation threads. Because the message originates from the real mailbox, SPF/DKIM/DMARC
+  pass and SEG allowlists do not block it. SMTP Auth can also be enabled per-user even when disabled tenant-wide.
+variants:
+- Compromised credential → direct SMTP Auth lure delivery
+- SMTP Auth used for reply-chain hijacking from a real mailbox
+- Per-user SMTP Auth enabled despite tenant-level disablement
+- SMTP Auth combined with mailbox rules to auto-forward replies or amplify internal phishing
+kits:
+- MFASweep / TREVORspray (credential validation)
+- Send-MailMessage (PowerShell)
+- Python smtplib scripts
+- Commodity BEC tooling
+surfaces:
+- smtp.office365.com
+- outlook.office365.com
+- Authenticated user mailbox
+attack:
+- T1566.001 — Spearphishing Attachment
+- T1566.002 — Spearphishing Link
+- T1556 — Modify Authentication Process
+- T1078 — Valid Accounts
+detections:
+- Exchange Online Message Trace / SigninLogs showing `SMTP` authentication protocol
+- Outbound mail volume spike from a single mailbox
+- Internal phishing reports referencing messages sent by known users but with unusual links
+- Inbound mail flow where sender's SPF passes but Authentication-Results shows `smtp.auth` origin
+mitigations:
+- Disable SMTP Auth tenant-wide and block per-user exceptions except for documented legacy devices
+- Enforce modern authentication and disable basic auth for all Exchange Online protocols
+- Alert on any `SMTP` protocol sign-in in SigninLogs
+- Implement mailbox anomaly detection for unusual outbound volume or internal-only phishing
+detection_code:
+- lang: kql
+  query: |
+    SigninLogs
+    | where TimeGenerated > ago(24h)
+    | where ResultType == 0
+    | where ClientAppUsed == "SMTP"
+       or ApplicationId == "00000002-0000-0ff1-ce00-000000000000"  // Exchange Online
+    | extend Protocol = tostring(parse_json(AuthenticationDetails)[0].authenticationProtocol)
+    | where Protocol == "SMTP" or ClientAppUsed == "SMTP"
+    | project TimeGenerated, UserPrincipalName, IPAddress, Location, ClientAppUsed,
+              AppDisplayName, ConditionalAccessStatus
+    | sort by TimeGenerated desc
+  description: Successful SMTP authentication events — legacy protocol bypassing Conditional Access.
+  source: Threat Hunting Wiki — T016 smtp-mfa-bypass
+- lang: kql
+  query: |
+    let KnownInternalDomains = dynamic(["yourdomain.com", "yourdomain.onmicrosoft.com"]);
+    SigninLogs
+    | where TimeGenerated > ago(24h)
+    | where ClientAppUsed == "SMTP"
+    | extend SenderDomain = tostring(split(UserPrincipalName, "@")[1])
+    | where not(SenderDomain in (KnownInternalDomains))
+    | project TimeGenerated, UserPrincipalName, SenderDomain, IPAddress, Location
+    | sort by TimeGenerated desc
+  description: SMTP Auth attempts from non-corporate sender domains — tune for your accepted domains.
+  source: Threat Hunting Wiki — T016 smtp-mfa-bypass
+refs:
+- title: Microsoft — Disable Basic authentication in Exchange Online
+  url: https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/disable-basic-authentication-in-exchange-online
+- title: Microsoft — Enable or disable SMTP AUTH
+  url: https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/authenticate-an-imap-pop-smtp-application-by-oauth
+since: Chronic / industrialized in BEC 2022+

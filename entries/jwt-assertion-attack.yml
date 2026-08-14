@@ -1,0 +1,76 @@
+# LOLPHISH entry — JWT Assertion / Certificate-Based Auth Abuse
+id: jwt-assertion-attack
+name: JWT Assertion / Certificate-Based Auth Abuse
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+summary: OAuth client-credential flows allow an app to authenticate with a certificate instead of a secret.
+  A self-signed JWT assertion, signed with the app's registered certificate private key, is exchanged at the
+  Microsoft token endpoint for a valid access token.
+abuse: An attacker who extracts or abuses an app certificate (or a Key Vault `keys/sign` permission) can
+  mint JWT assertions and authenticate as the service principal without ever knowing a password or secret.
+  Unlike device-code phishing, this does not involve a victim interactive login — it is silent, app-only access
+  that typically bypasses MFA and many CAP controls because service principals are not subject to user-facing
+  Conditional Access.
+variants:
+- Full private-key extraction from Key Vault secrets (`.pfx` download)
+- Remote signing via Key Vault `keys/sign` without reading the private key
+- Self-signed certificate added to owned app registration by a compromised user
+- Certificate thumbprint matching to identify and impersonate target SPNs
+kits:
+- New-AccessToken.ps1 (CARTE lab tooling)
+- New-SignedJWT.ps1 (Key Vault remote signing)
+- roadtx (PRT/cert-based auth)
+- TokenTacticsV2 (token exchange)
+surfaces:
+- login.microsoftonline.com token endpoint
+- Azure Key Vault certificates/keys endpoints
+- App registration keyCredentials/certificates
+attack:
+- "T1552.004 — Unsecured Credentials: Private Keys"
+- "T1550.001 — Use Alternate Authentication Material: Application Access Token"
+detections:
+- Service principal sign-ins with AuthenticationDetails containing "client_assertion"
+- Token grants immediately preceded by Key Vault `sign` or `secrets/get` operations
+- SPN authenticating from IP ranges with no historical baseline
+- New certificates or secrets added to apps with high-privilege API permissions
+mitigations:
+- Store app certificates in Hardware Security Modules (HSM) or managed identities instead of exportable Key Vault secrets
+- Restrict Key Vault `keys/sign` and `secrets/get` to specific SPNs with justifications
+- Monitor and alert on all "Add app role assignment to service principal" for Application.ReadWrite.All,
+  AppRoleAssignment.ReadWrite.All, and RoleManagement.ReadWrite.Directory
+- Rotate app certificates on any suspicion of Key Vault compromise
+detection_code:
+- lang: kql
+  query: |
+    AADServicePrincipalSignInLogs
+    | where TimeGenerated > ago(24h)
+    | where ResultType == 0
+    | where AuthenticationDetails has "client_assertion"
+    | project TimeGenerated, ServicePrincipalName, AppId, IPAddress,
+              ResourceDisplayName, Location
+    | summarize Count = count(), Resources = make_set(ResourceDisplayName)
+        by ServicePrincipalName, IPAddress, bin(TimeGenerated, 1h)
+    | where Count > 1
+  description: SPN token requests using JWT client assertions rather than secrets.
+  source: Threat Hunting Wiki — D003 jwt-assertion-signing
+- lang: kql
+  query: |
+    let baseline = AADServicePrincipalSignInLogs
+    | where TimeGenerated between (ago(30d) .. ago(1d))
+    | summarize KnownIPs = make_set(IPAddress) by ServicePrincipalName;
+    AADServicePrincipalSignInLogs
+    | where TimeGenerated > ago(1d)
+    | where ResultType == 0
+    | join kind=leftouter baseline on ServicePrincipalName
+    | where not (array_contains(KnownIPs, IPAddress))
+    | project TimeGenerated, ServicePrincipalName, IPAddress, ResourceDisplayName
+    | sort by TimeGenerated desc
+  description: SPN authenticating from IPs not seen in the previous 30-day baseline.
+  source: Threat Hunting Wiki — D003 jwt-assertion-signing
+refs:
+- title: Microsoft — OAuth 2.0 client credentials flow with certificate credentials
+  url: https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow#third-case-access-token-request-with-a-certificate
+- title: Microsoft — Key Vault access policy guidance
+  url: https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy
+since: 2020 (research) / 2024+ (Key Vault remote signing abuse)

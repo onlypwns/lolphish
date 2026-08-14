@@ -1,4 +1,4 @@
-/* GENERATED FILE — do not edit. Source of truth: entries/*.yml (run build.py) */
+/* GENERATED FILE � do not edit. Source of truth: entries/*.yml (run build.py) */
 
 const ENTRIES = [
   {
@@ -44,6 +44,20 @@ const ENTRIES = [
       "Sign-in from hosting/data-center ASN immediately after victim MFA event",
       "Impossible travel + token replay alerts; 'stolen session cookie' detections in M365D",
       "Passive DNS on kit TLD patterns; proxy-rewrite artifacts (URL-in-URL)"
+    ],
+    "detection_code": [
+      {
+        "lang": "kql",
+        "query": "SigninLogs\n| where TimeGenerated > ago(24h)\n| where ResultType == 0\n| where AuthenticationRequirement == \"multiFactorAuthentication\"\n| extend City = tostring(LocationDetails.city)\n| extend Country = tostring(LocationDetails.countryOrRegion)\n| summarize\n    Locations = make_set(pack(\"city\", City, \"country\", Country)),\n    LocationCount = dcount(City)\n    by UserPrincipalName, bin(TimeGenerated, 1h)\n| where LocationCount > 1\n",
+        "description": "Impossible travel within one hour for MFA-completed sign-ins — cookie replay to a different geography.",
+        "source": "Threat Hunting Wiki — D012 aitm-session-theft"
+      },
+      {
+        "lang": "kql",
+        "query": "SigninLogs\n| where TimeGenerated > ago(24h)\n| where ResultType == 0\n| where UserAgent has_any (\"HeadlessChrome\", \"PhantomJS\") or UserAgent == \"\"\n| project TimeGenerated, UserPrincipalName, IPAddress, UserAgent, AppDisplayName\n| sort by TimeGenerated desc\n",
+        "description": "Successful sign-ins from headless browser user agents commonly used by AiTM proxy kits.",
+        "source": "Threat Hunting Wiki — D012 aitm-session-theft"
+      }
     ],
     "mitigations": [
       "Phishing-resistant auth (FIDO2/passkeys) — origin binding defeats relay",
@@ -366,9 +380,21 @@ const ENTRIES = [
     "detection_code": [
       {
         "lang": "kql",
-        "query": "SigninLogs\n| where AuthenticationProtocol == \"deviceCodeFlow\"\n| where RiskState != \"remediated\" or isempty(RiskState)\n| project TimeGenerated, UserPrincipalName, IPAddress, Location, AppDisplayName,\n          ClientAppUsed, RiskState, RiskLevelDuringSignIn\n| sort by TimeGenerated desc\n",
-        "description": "Surface all device-code-flow sign-ins; correlate IP/location with recent MFA events.",
-        "source": "LOLPHISH"
+        "query": "let CriticalBypassApps = dynamic([\n    \"4813382a-8fa7-425e-ab75-3b753aab3abb\",  // Microsoft Authenticator App\n    \"9ba1a5c7-f17a-4de9-a1f1-6178c8d51223\"   // Microsoft Intune Company Portal\n]);\nSigninLogs\n| where TimeGenerated > ago(24h)\n| where AuthenticationProtocol == \"deviceCodeFlow\"\n| where ResultType == 0\n| extend\n    City          = tostring(parse_json(LocationDetails).city),\n    Country       = tostring(parse_json(LocationDetails).countryOrRegion),\n    IsCriticalApp = AppId in (CriticalBypassApps)\n| project\n    TimeGenerated, UserPrincipalName, AppDisplayName, AppId, IPAddress,\n    City, Country, RiskLevelDuringSignIn, ConditionalAccessStatus, IsCriticalApp\n| extend Severity = case(\n    IsCriticalApp == true,                       \"CRITICAL — CA Bypass 3 app\",\n    RiskLevelDuringSignIn in (\"high\",\"medium\"),  \"HIGH    — risky sign-in\",\n    ConditionalAccessStatus == \"notApplied\",     \"MEDIUM  — CAP not enforced\",\n    \"LOW     — review\"\n  )\n| sort by TimeGenerated desc\n",
+        "description": "Successful device-code grants; escalates when targeting Authenticator/Intune Company Portal (CA Bypass 3).",
+        "source": "Threat Hunting Wiki — D001 device-code-indicators"
+      },
+      {
+        "lang": "kql",
+        "query": "AADNonInteractiveUserSignInLogs\n| where TimeGenerated > ago(1h)\n| where ResultType == 50199  // Device code pending — attacker polling\n| summarize\n    PollCount      = count(),\n    UniqueUsers    = dcount(UserPrincipalName),\n    UniqueApps     = dcount(AppId),\n    TargetUsers    = make_set(UserPrincipalName),\n    Apps           = make_set(AppDisplayName)\n    by IPAddress, bin(TimeGenerated, 15m)\n| where PollCount > 3 or UniqueUsers > 1\n| extend ThreatSignal = case(\n    UniqueUsers > 5,  \"HIGH — mass campaign\",\n    UniqueUsers > 1,  \"MEDIUM — multi-target\",\n    PollCount > 10,   \"MEDIUM — repeated single-target\",\n    \"LOW — review\"\n  )\n| sort by UniqueUsers desc, PollCount desc\n",
+        "description": "Dynamic device-code phishing campaigns — mass polling from one IP before any victim authenticates.",
+        "source": "Threat Hunting Wiki — D001 device-code-indicators"
+      },
+      {
+        "lang": "kql",
+        "query": "let DeviceCodeGrants = SigninLogs\n| where TimeGenerated > ago(2h)\n| where AuthenticationProtocol == \"deviceCodeFlow\"\n| where ResultType == 0\n| project GrantTime = TimeGenerated, UPN = UserPrincipalName, GrantIP = IPAddress, GrantApp = AppDisplayName;\nlet TokenRefreshes = AADNonInteractiveUserSignInLogs\n| where TimeGenerated > ago(2h)\n| where ResultType == 0\n| where AuthenticationProtocol != \"deviceCodeFlow\"\n| project RefreshTime = TimeGenerated, UPN = UserPrincipalName, RefreshIP = IPAddress, RefreshApp = AppDisplayName;\nDeviceCodeGrants\n| join kind=inner TokenRefreshes on UPN\n| where RefreshTime > GrantTime and RefreshTime < datetime_add('minute', 30, GrantTime)\n| where GrantIP == RefreshIP\n| project UPN, GrantTime, GrantApp, GrantIP, RefreshTime, RefreshApp,\n          MinutesBetween = datetime_diff('minute', RefreshTime, GrantTime)\n| sort by MinutesBetween asc\n",
+        "description": "Post-grant FOCI pivot — same-IP cross-app token refresh within 30 minutes of a device-code grant.",
+        "source": "Threat Hunting Wiki — D001 device-code-indicators"
       }
     ],
     "mitigations": [
@@ -432,9 +458,15 @@ const ENTRIES = [
     "detection_code": [
       {
         "lang": "kql",
-        "query": "AuditLogs\n| where OperationName == \"Consent to application\"\n| extend ConsentType = tostring(parse_json(tostring(parse_json(TargetResources[0].modifiedProperties)[0])).newValue)\n| extend Scope = tostring(parse_json(tostring(parse_json(TargetResources[0].modifiedProperties)[1])).newValue)\n| where Scope has_any (\"Mail.Read\", \"Mail.Send\", \"Files.Read.All\", \"offline_access\")\n| project TimeGenerated, OperationName, InitiatedBy, AppDisplayName = TargetResources[0].displayName,\n          ConsentType, Scope\n| sort by TimeGenerated desc\n",
-        "description": "New Entra OAuth grants requesting mail/file scopes — hunt for suspicious apps and consent types.",
-        "source": "LOLPHISH"
+        "query": "AuditLogs\n| where TimeGenerated > ago(24h)\n| where OperationName == \"Consent to application\"\n| where Result == \"success\"\n| extend\n    SpObjectId = tostring(TargetResources[0].id),\n    AppName    = tostring(TargetResources[0].displayName),\n    ActorUPN   = tostring(InitiatedBy.user.userPrincipalName),\n    ActorIP    = tostring(InitiatedBy.user.ipAddress)\n| extend Permissions = tostring(TargetResources[0].modifiedProperties)\n| where Permissions has_any (\"Chat.Read\", \"Mail.Read\", \"Mail.Send\", \"Files.Read\", \"Files.ReadWrite\", \"offline_access\")\n| project TimeGenerated, ActorUPN, ActorIP, AppName, SpObjectId, Permissions\n| sort by TimeGenerated desc\n",
+        "description": "New successful Entra OAuth grants requesting sensitive mail/file/chat scopes.",
+        "source": "Threat Hunting Wiki — D010 illicit-consent-detection"
+      },
+      {
+        "lang": "kql",
+        "query": "let HomeTenantId = \"YOUR_TENANT_ID\";\nAuditLogs\n| where TimeGenerated > ago(7d)\n| where OperationName == \"Consent to application\"\n| where Result == \"success\"\n| extend\n    SpObjectId = tostring(TargetResources[0].id),\n    AppName    = tostring(TargetResources[0].displayName),\n    ActorUPN   = tostring(InitiatedBy.user.userPrincipalName),\n    ActorIP    = tostring(InitiatedBy.user.ipAddress)\n| join kind=inner (\n    AADServicePrincipalSignInLogs\n    | where TimeGenerated > ago(7d)\n    | where ResultType == 0\n    | extend CallerTenantId = tostring(todynamic(Claims)[\"http://schemas.microsoft.com/identity/claims/tenantid\"])\n    | where isnotempty(CallerTenantId) and CallerTenantId != HomeTenantId\n    | summarize ExternalTenants = make_set(CallerTenantId), FirstSignIn = min(TimeGenerated),\n                ResourceList = make_set(ResourceDisplayName) by ServicePrincipalId\n) on $left.SpObjectId == $right.ServicePrincipalId\n| project TimeGenerated, ActorUPN, ActorIP, AppName, SpObjectId, ExternalTenants, ResourceList, FirstSignIn\n| sort by TimeGenerated desc\n",
+        "description": "Consent granted to multi-tenant apps whose service principal home tenant is external to your org.",
+        "source": "Threat Hunting Wiki — D010 illicit-consent-detection"
       }
     ],
     "mitigations": [
@@ -535,6 +567,20 @@ const ENTRIES = [
       "Token redemptions for client IDs with no corresponding interactive sign-in",
       "Single user, many first-party client IDs in short windows",
       "Correlate refresh events against phishing-sign-in events (device code, AiTM ASN)"
+    ],
+    "detection_code": [
+      {
+        "lang": "kql",
+        "query": "AADNonInteractiveUserSignInLogs\n| where TimeGenerated > ago(1h)\n| where ResultType == 0\n| summarize\n    DistinctApps  = dcount(AppId),\n    AppList       = make_set(AppDisplayName),\n    TokenCount    = count(),\n    UniqueIPs     = dcount(IPAddress),\n    IPList        = make_set(IPAddress),\n    FirstSeen     = min(TimeGenerated),\n    LastSeen      = max(TimeGenerated)\n    by UserPrincipalName, IPAddress, bin(TimeGenerated, 5m)\n| where DistinctApps > 2 and TokenCount > 3\n| extend RiskSignal = case(\n    DistinctApps >= 5, \"CRITICAL — full FOCI family sweep\",\n    DistinctApps >= 3, \"HIGH — multi-app token exchange\",\n    \"MEDIUM — review\"\n  )\n| sort by DistinctApps desc, TokenCount desc\n",
+        "description": "Rapid non-interactive token acquisition across multiple first-party app IDs from the same IP.",
+        "source": "Threat Hunting Wiki — D002 foci-token-anomalies"
+      },
+      {
+        "lang": "kql",
+        "query": "let LookbackWindow = 2h;\nlet PivotWindow    = 30m;\nlet GraphTokens =\n    AADNonInteractiveUserSignInLogs\n    | where TimeGenerated > ago(LookbackWindow)\n    | where ResultType == 0\n    | where ResourceDisplayName == \"Microsoft Graph\"\n    | project GraphTime = TimeGenerated, UPN = UserPrincipalName, GraphIP = IPAddress;\nGraphTokens\n| join kind=inner (\n    AADNonInteractiveUserSignInLogs\n    | where TimeGenerated > ago(LookbackWindow)\n    | where ResultType == 0\n    | where ResourceDisplayName == \"Windows Azure Service Management API\"\n    | project ArmTime = TimeGenerated, UPN = UserPrincipalName, ArmIP = IPAddress\n) on UPN\n| where ArmTime > GraphTime\n      and ArmTime < datetime_add('minute', PivotWindow, GraphTime)\n| project\n    GraphTime,\n    ArmTime,\n    MinutesBetween = datetime_diff('minute', ArmTime, GraphTime),\n    UPN,\n    GraphIP,\n    ArmIP,\n    SameIP = GraphIP == ArmIP\n| sort by MinutesBetween asc\n",
+        "description": "FOCI-mediated escalation from Microsoft Graph to Azure Resource Manager within 30 minutes.",
+        "source": "Threat Hunting Wiki — D002 foci-token-anomalies"
+      }
     ],
     "mitigations": [
       "Revoke at the user level (all refresh tokens) on any identity-phish event — not per-session",
@@ -653,6 +699,74 @@ const ENTRIES = [
     "since": "2022+ (steady background hum)"
   },
   {
+    "id": "jwt-assertion-attack",
+    "name": "JWT Assertion / Certificate-Based Auth Abuse",
+    "category": "Identity Flow Abuse",
+    "vendors": [
+      "Microsoft Entra ID"
+    ],
+    "summary": "OAuth client-credential flows allow an app to authenticate with a certificate instead of a secret. A self-signed JWT assertion, signed with the app's registered certificate private key, is exchanged at the Microsoft token endpoint for a valid access token.",
+    "abuse": "An attacker who extracts or abuses an app certificate (or a Key Vault `keys/sign` permission) can mint JWT assertions and authenticate as the service principal without ever knowing a password or secret. Unlike device-code phishing, this does not involve a victim interactive login — it is silent, app-only access that typically bypasses MFA and many CAP controls because service principals are not subject to user-facing Conditional Access.",
+    "variants": [
+      "Full private-key extraction from Key Vault secrets (`.pfx` download)",
+      "Remote signing via Key Vault `keys/sign` without reading the private key",
+      "Self-signed certificate added to owned app registration by a compromised user",
+      "Certificate thumbprint matching to identify and impersonate target SPNs"
+    ],
+    "kits": [
+      "New-AccessToken.ps1 (CARTE lab tooling)",
+      "New-SignedJWT.ps1 (Key Vault remote signing)",
+      "roadtx (PRT/cert-based auth)",
+      "TokenTacticsV2 (token exchange)"
+    ],
+    "surfaces": [
+      "login.microsoftonline.com token endpoint",
+      "Azure Key Vault certificates/keys endpoints",
+      "App registration keyCredentials/certificates"
+    ],
+    "attack": [
+      "T1552.004 — Unsecured Credentials: Private Keys",
+      "T1550.001 — Use Alternate Authentication Material: Application Access Token"
+    ],
+    "detections": [
+      "Service principal sign-ins with AuthenticationDetails containing \"client_assertion\"",
+      "Token grants immediately preceded by Key Vault `sign` or `secrets/get` operations",
+      "SPN authenticating from IP ranges with no historical baseline",
+      "New certificates or secrets added to apps with high-privilege API permissions"
+    ],
+    "detection_code": [
+      {
+        "lang": "kql",
+        "query": "AADServicePrincipalSignInLogs\n| where TimeGenerated > ago(24h)\n| where ResultType == 0\n| where AuthenticationDetails has \"client_assertion\"\n| project TimeGenerated, ServicePrincipalName, AppId, IPAddress,\n          ResourceDisplayName, Location\n| summarize Count = count(), Resources = make_set(ResourceDisplayName)\n    by ServicePrincipalName, IPAddress, bin(TimeGenerated, 1h)\n| where Count > 1\n",
+        "description": "SPN token requests using JWT client assertions rather than secrets.",
+        "source": "Threat Hunting Wiki — D003 jwt-assertion-signing"
+      },
+      {
+        "lang": "kql",
+        "query": "let baseline = AADServicePrincipalSignInLogs\n| where TimeGenerated between (ago(30d) .. ago(1d))\n| summarize KnownIPs = make_set(IPAddress) by ServicePrincipalName;\nAADServicePrincipalSignInLogs\n| where TimeGenerated > ago(1d)\n| where ResultType == 0\n| join kind=leftouter baseline on ServicePrincipalName\n| where not (array_contains(KnownIPs, IPAddress))\n| project TimeGenerated, ServicePrincipalName, IPAddress, ResourceDisplayName\n| sort by TimeGenerated desc\n",
+        "description": "SPN authenticating from IPs not seen in the previous 30-day baseline.",
+        "source": "Threat Hunting Wiki — D003 jwt-assertion-signing"
+      }
+    ],
+    "mitigations": [
+      "Store app certificates in Hardware Security Modules (HSM) or managed identities instead of exportable Key Vault secrets",
+      "Restrict Key Vault `keys/sign` and `secrets/get` to specific SPNs with justifications",
+      "Monitor and alert on all \"Add app role assignment to service principal\" for Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All, and RoleManagement.ReadWrite.Directory",
+      "Rotate app certificates on any suspicion of Key Vault compromise"
+    ],
+    "refs": [
+      {
+        "title": "Microsoft — OAuth 2.0 client credentials flow with certificate credentials",
+        "url": "https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow#third-case-access-token-request-with-a-certificate"
+      },
+      {
+        "title": "Microsoft — Key Vault access policy guidance",
+        "url": "https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy"
+      }
+    ],
+    "since": "2020 (research) / 2024+ (Key Vault remote signing abuse)"
+  },
+  {
     "id": "m365-direct-send",
     "name": "Exchange Direct Send & Tenant Sender Abuse",
     "category": "Trusted Delivery",
@@ -697,6 +811,142 @@ const ENTRIES = [
       }
     ],
     "since": "2025 (mass-abuse wave)"
+  },
+  {
+    "id": "noauth-claims-abuse",
+    "name": "nOAuth / Mutable Token Claims Abuse",
+    "category": "Identity Flow Abuse",
+    "vendors": [
+      "Microsoft Entra ID"
+    ],
+    "summary": "Multi-tenant Entra ID applications that use mutable user-profile claims — such as email, department, jobTitle, companyName, or extension attributes — as identity or authorization inputs trust data that the user (or any identity with User.ReadWrite.All) can modify.\n",
+    "abuse": "An attacker changes a mutable claim on their own user object in their own tenant (or any tenant where they have access), then authenticates to the target multi-tenant app. The app reads the attacker-controlled claim and treats the attacker as a privileged user (e.g., admin, HR, manager). Post-June 2023 Microsoft removes unverified domain emails from tokens by default, but the same anti-pattern persists across many other profile attributes and custom claims.",
+    "variants": [
+      "email claim spoofing in multi-tenant apps that use email as a unique identifier",
+      "department, jobTitle, companyName, officeLocation claim flip to unlock admin routes",
+      "Extension attribute (extension_*) mutation to satisfy custom app authorization gates",
+      "Cross-tenant authentication with mismatched email/home-tenant domains"
+    ],
+    "kits": [
+      "Microsoft Graph API (PATCH /me or /users/{id})",
+      "Any ROPC/token tool that can obtain a Graph token for the attacker's user"
+    ],
+    "surfaces": [
+      "login.microsoftonline.com common endpoint",
+      "Target multi-tenant app consent/sign-in flow",
+      "Microsoft Graph /v1.0/me endpoint"
+    ],
+    "attack": [
+      "T1078.004 — Valid Accounts: Cloud Accounts",
+      "T1134 — Access Token Manipulation",
+      "T1098 — Account Manipulation"
+    ],
+    "detections": [
+      "AuditLogs \"Update user\" where Target is the same user and ModifiedProperties contains Department/JobTitle/CompanyName/Email",
+      "Sign-in to admin-gated app within minutes of self-claimed attribute change",
+      "Cross-tenant sign-ins where `xms_edov` optional claim is false (unverified email)",
+      "Multiple users from different home tenants authenticating with identical email claims"
+    ],
+    "detection_code": [
+      {
+        "lang": "kql",
+        "query": "AuditLogs\n| where TimeGenerated > ago(24h)\n| where OperationName == \"Update user\"\n| where Result == \"success\"\n| extend\n    ActorUPN  = tostring(InitiatedBy.user.userPrincipalName),\n    TargetUPN = tostring(TargetResources[0].userPrincipalName),\n    Props     = TargetResources[0].modifiedProperties\n| mv-expand Props\n| where Props.displayName in (\"Department\", \"JobTitle\", \"CompanyName\", \"Mail\")\n| where ActorUPN == TargetUPN  // Self-modified claim\n| project TimeGenerated, ActorUPN, TargetUPN, ModifiedProperty = Props.displayName,\n          OldValue = Props.oldValue, NewValue = Props.newValue\n| sort by TimeGenerated desc\n",
+        "description": "Users modifying their own profile attributes that are commonly abused as authorization claims.",
+        "source": "Threat Hunting Wiki — T008 noauth-claims-abuse"
+      },
+      {
+        "lang": "kql",
+        "query": "let ClaimChanges = AuditLogs\n| where TimeGenerated > ago(24h)\n| where OperationName == \"Update user\"\n| extend TargetUPN = tostring(TargetResources[0].userPrincipalName)\n| mv-expand Props = TargetResources[0].modifiedProperties\n| where Props.displayName in (\"Department\", \"JobTitle\", \"CompanyName\", \"Mail\")\n| project ChangeTime = TimeGenerated, TargetUPN, NewValue = Props.newValue;\nSigninLogs\n| where TimeGenerated > ago(24h)\n| where ResultType == 0\n| project SignInTime = TimeGenerated, UserPrincipalName, AppDisplayName, IPAddress, Location\n| join kind=inner ClaimChanges on $left.UserPrincipalName == $right.TargetUPN\n| where SignInTime > ChangeTime and SignInTime < datetime_add('minute', 15, ChangeTime)\n| project ChangeTime, SignInTime, UserPrincipalName, AppDisplayName, IPAddress, NewValue\n| sort by ChangeTime desc\n",
+        "description": "Sign-in to an app within 15 minutes of a self-modified profile claim — potential claim-flip exploitation.",
+        "source": "Threat Hunting Wiki — T008 noauth-claims-abuse"
+      }
+    ],
+    "mitigations": [
+      "Applications must use immutable claims (`sub`, `oid`, `tid`) for identity and look up authorization roles in a backend store",
+      "Enable and enforce the `xms_edov` optional claim to verify email ownership",
+      "Audit apps reading `department`, `jobTitle`, `companyName`, or extension attributes from id_token without server-side verification",
+      "Restrict self-service profile updates for sensitive attributes via directory settings"
+    ],
+    "refs": [
+      {
+        "title": "Microsoft — Token claims reference",
+        "url": "https://learn.microsoft.com/en-us/entra/identity-platform/id-token-claims-reference"
+      },
+      {
+        "title": "Microsoft — Add optional claims to tokens",
+        "url": "https://learn.microsoft.com/en-us/entra/identity-platform/optional-claims"
+      }
+    ],
+    "since": "2023 (nOAuth disclosure) / ongoing in multi-tenant app misconfigurations"
+  },
+  {
+    "id": "pim-abuse",
+    "name": "Privileged Identity Management (PIM) Role Activation Abuse",
+    "category": "Identity Flow Abuse",
+    "vendors": [
+      "Microsoft Entra ID"
+    ],
+    "summary": "Privileged Identity Management enforces just-in-time activation for eligible Entra ID/Azure AD roles, typically requiring MFA and optionally approval before a user gains privileged access.",
+    "abuse": "Two weaknesses make PIM exploitable. First, an access token stolen *before* a role activation inherits the new role's privileges immediately after activation — PIM does not re-evaluate existing tokens. Second, an application with RoleManagement.ReadWrite.Directory can activate eligible roles programmatically, bypassing the approval workflow entirely. The result is privilege escalation without the expected MFA or approval chain.",
+    "variants": [
+      "Pre-activation token theft → wait/trigger role activation → token now has role privileges",
+      "Misconfigured web app or compromised SPN activates role without PIM approval",
+      "Guest/B2B user with eligible role activated by attacker-controlled app",
+      "Custom role (e.g., Groups Administrator) scoped to a group used to access Key Vault or other resources"
+    ],
+    "kits": [
+      "Microsoft Graph PowerShell SDK",
+      "Custom app with RoleManagement.ReadWrite.Directory",
+      "roadtx / TokenTacticsV2 (token extraction and refresh)"
+    ],
+    "surfaces": [
+      "portal.azure.com / Entra admin center PIM blades",
+      "Graph API roleManagement/directoryRoleAssignments",
+      "Misconfigured internal \"secureiam\"-style helper apps"
+    ],
+    "attack": [
+      "T1548 — Abuse Elevation Control Mechanism",
+      "T1078.004 — Valid Accounts: Cloud Accounts",
+      "T1098 — Account Manipulation"
+    ],
+    "detections": [
+      "AuditLogs \"Add member to role in PIM (completed)\" initiated by an app (InitiatedBy.app)",
+      "Role activation with no preceding PIM approval request for high-impact roles",
+      "Group membership changes shortly after a PIM role activation for the same actor",
+      "Sign-in token `iat` claim predates the role activation timestamp for privileged operations"
+    ],
+    "detection_code": [
+      {
+        "lang": "kql",
+        "query": "AuditLogs\n| where TimeGenerated > ago(24h)\n| where OperationName has \"Add member to role in PIM\"\n| extend InitiatorType = iff(isnotempty(InitiatedBy.app), \"app\", \"user\")\n| where InitiatorType == \"app\"\n| extend\n    AppName = tostring(InitiatedBy.app.displayName),\n    AppId   = tostring(InitiatedBy.app.servicePrincipalId),\n    RoleName = tostring(TargetResources[0].displayName)\n| project TimeGenerated, OperationName, AppName, AppId, RoleName, InitiatedBy\n| sort by TimeGenerated desc\n",
+        "description": "PIM role activations initiated by an application rather than a user — almost never legitimate.",
+        "source": "Threat Hunting Wiki — T023 pim-abuse"
+      },
+      {
+        "lang": "kql",
+        "query": "let Activations = AuditLogs\n| where TimeGenerated > ago(24h)\n| where OperationName == \"Add member to role in PIM (completed)\"\n| extend UPN = tostring(InitiatedBy.user.userPrincipalName)\n| project ActivationTime = TimeGenerated, UPN, RoleName = TargetResources[0].displayName;\nAuditLogs\n| where TimeGenerated > ago(24h)\n| where OperationName == \"Add member to group\"\n| extend UPN = tostring(InitiatedBy.user.userPrincipalName)\n| join kind=inner Activations on UPN\n| where TimeGenerated > ActivationTime\n      and TimeGenerated < datetime_add('minute', 15, ActivationTime)\n| project ActivationTime, GroupAddTime = TimeGenerated, UPN, RoleName, GroupName = TargetResources[0].displayName\n| sort by ActivationTime desc\n",
+        "description": "Group membership addition within 15 minutes of a PIM role activation by the same user.",
+        "source": "Threat Hunting Wiki — T023 pim-abuse"
+      }
+    ],
+    "mitigations": [
+      "Require phishing-resistant MFA and approval for all high-impact PIM role activations",
+      "Audit apps holding RoleManagement.ReadWrite.Directory; remove where not strictly required",
+      "Use Conditional Access authentication context scoped specifically to PIM activation",
+      "No permanent active assignments for privileged roles; limit activation windows to 1–2 hours",
+      "Review eligible assignments for external/B2B guest users"
+    ],
+    "refs": [
+      {
+        "title": "Microsoft — PIM role activation settings",
+        "url": "https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-how-to-change-default-settings"
+      },
+      {
+        "title": "Microsoft — Authentication context in Conditional Access",
+        "url": "https://learn.microsoft.com/en-us/entra/identity/conditional-access/concept-conditional-access-cloud-apps#authentication-context"
+      }
+    ],
+    "since": "2020+ (PIM exploitation in red-team chains)"
   },
   {
     "id": "quishing",
@@ -867,6 +1117,146 @@ const ENTRIES = [
     "since": "2020+ (default PhaaS posture by 2023)"
   },
   {
+    "id": "smtp-mfa-bypass",
+    "name": "SMTP Auth MFA Bypass / Legacy Protocol Delivery",
+    "category": "Trusted Delivery",
+    "vendors": [
+      "Microsoft 365 / Exchange Online"
+    ],
+    "summary": "SMTP Auth is a legacy mail-sending protocol in Exchange Online. Even when modern authentication and Conditional Access enforce MFA for interactive sign-ins, SMTP Auth can send mail as a user with only username and password — bypassing all CAP controls.",
+    "abuse": "A phished or brute-forced password becomes an internal phishing delivery mechanism. The attacker sends lure emails as the compromised user from `smtp.office365.com`, inheriting the user's display name, internal address, and existing conversation threads. Because the message originates from the real mailbox, SPF/DKIM/DMARC pass and SEG allowlists do not block it. SMTP Auth can also be enabled per-user even when disabled tenant-wide.",
+    "variants": [
+      "Compromised credential → direct SMTP Auth lure delivery",
+      "SMTP Auth used for reply-chain hijacking from a real mailbox",
+      "Per-user SMTP Auth enabled despite tenant-level disablement",
+      "SMTP Auth combined with mailbox rules to auto-forward replies or amplify internal phishing"
+    ],
+    "kits": [
+      "MFASweep / TREVORspray (credential validation)",
+      "Send-MailMessage (PowerShell)",
+      "Python smtplib scripts",
+      "Commodity BEC tooling"
+    ],
+    "surfaces": [
+      "smtp.office365.com",
+      "outlook.office365.com",
+      "Authenticated user mailbox"
+    ],
+    "attack": [
+      "T1566.001 — Spearphishing Attachment",
+      "T1566.002 — Spearphishing Link",
+      "T1556 — Modify Authentication Process",
+      "T1078 — Valid Accounts"
+    ],
+    "detections": [
+      "Exchange Online Message Trace / SigninLogs showing `SMTP` authentication protocol",
+      "Outbound mail volume spike from a single mailbox",
+      "Internal phishing reports referencing messages sent by known users but with unusual links",
+      "Inbound mail flow where sender's SPF passes but Authentication-Results shows `smtp.auth` origin"
+    ],
+    "detection_code": [
+      {
+        "lang": "kql",
+        "query": "SigninLogs\n| where TimeGenerated > ago(24h)\n| where ResultType == 0\n| where ClientAppUsed == \"SMTP\"\n   or ApplicationId == \"00000002-0000-0ff1-ce00-000000000000\"  // Exchange Online\n| extend Protocol = tostring(parse_json(AuthenticationDetails)[0].authenticationProtocol)\n| where Protocol == \"SMTP\" or ClientAppUsed == \"SMTP\"\n| project TimeGenerated, UserPrincipalName, IPAddress, Location, ClientAppUsed,\n          AppDisplayName, ConditionalAccessStatus\n| sort by TimeGenerated desc\n",
+        "description": "Successful SMTP authentication events — legacy protocol bypassing Conditional Access.",
+        "source": "Threat Hunting Wiki — T016 smtp-mfa-bypass"
+      },
+      {
+        "lang": "kql",
+        "query": "let KnownInternalDomains = dynamic([\"yourdomain.com\", \"yourdomain.onmicrosoft.com\"]);\nSigninLogs\n| where TimeGenerated > ago(24h)\n| where ClientAppUsed == \"SMTP\"\n| extend SenderDomain = tostring(split(UserPrincipalName, \"@\")[1])\n| where not(SenderDomain in (KnownInternalDomains))\n| project TimeGenerated, UserPrincipalName, SenderDomain, IPAddress, Location\n| sort by TimeGenerated desc\n",
+        "description": "SMTP Auth attempts from non-corporate sender domains — tune for your accepted domains.",
+        "source": "Threat Hunting Wiki — T016 smtp-mfa-bypass"
+      }
+    ],
+    "mitigations": [
+      "Disable SMTP Auth tenant-wide and block per-user exceptions except for documented legacy devices",
+      "Enforce modern authentication and disable basic auth for all Exchange Online protocols",
+      "Alert on any `SMTP` protocol sign-in in SigninLogs",
+      "Implement mailbox anomaly detection for unusual outbound volume or internal-only phishing"
+    ],
+    "refs": [
+      {
+        "title": "Microsoft — Disable Basic authentication in Exchange Online",
+        "url": "https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/disable-basic-authentication-in-exchange-online"
+      },
+      {
+        "title": "Microsoft — Enable or disable SMTP AUTH",
+        "url": "https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/authenticate-an-imap-pop-smtp-application-by-oauth"
+      }
+    ],
+    "since": "Chronic / industrialized in BEC 2022+"
+  },
+  {
+    "id": "tap-abuse",
+    "name": "Temporary Access Pass (TAP) Abuse",
+    "category": "Identity Flow Abuse",
+    "vendors": [
+      "Microsoft Entra ID"
+    ],
+    "summary": "Temporary Access Pass is a time-limited, single-factor code issued by privileged Entra ID roles to let users register MFA methods or recover access without their normal credentials.",
+    "abuse": "An attacker who compromises an Authentication Administrator, Privileged Authentication Administrator, or Global Administrator identity can generate a TAP for any user in scope. The victim (or attacker) authenticates with the TAP and bypasses all Conditional Access policies, including MFA and authentication strength requirements. Access tokens remain valid for 70–75 minutes even if the TAP lifetime is only 10 minutes.",
+    "variants": [
+      "Auth Admin scoped to Administrative Unit creates TAP for targeted sync/user account",
+      "Compromised service principal or app with Authentication Admin role creates TAP",
+      "TAP used for cross-tenant directory switch where suppressed consent removes MFA prompt",
+      "TAP used to bootstrap device registration or MFA method registration for persistence"
+    ],
+    "kits": [
+      "Microsoft Graph PowerShell SDK (New-MgUserAuthenticationTemporaryAccessPassMethod)",
+      "Custom PowerShell / Graph API scripts",
+      "roadtx / TokenTacticsV2 (token extraction post-TAP)"
+    ],
+    "surfaces": [
+      "myaccount.microsoft.com",
+      "portal.azure.com",
+      "login.microsoftonline.com",
+      "Graph API /beta/users/{id}/authentication/temporaryAccessPassMethods"
+    ],
+    "attack": [
+      "T1556 — Modify Authentication Process",
+      "T1078.004 — Valid Accounts: Cloud Accounts",
+      "T1098 — Account Manipulation"
+    ],
+    "detections": [
+      "AuditLogs OperationName \"Add temporary access pass method\" by non-helpdesk workflows",
+      "SigninLogs where AuthenticationDetail.AuthenticationMethod == \"Temporary Access Pass\"",
+      "TAP creation followed within minutes by sign-in from a new IP/geography for the same user",
+      "Cross-tenant switch (CrossTenantAccessType = B2BCollaboration) shortly after TAP-authenticated session"
+    ],
+    "detection_code": [
+      {
+        "lang": "kql",
+        "query": "AuditLogs\n| where TimeGenerated > ago(24h)\n| where OperationName == \"Add temporary access pass method\"\n| extend\n    ActorUPN = tostring(InitiatedBy.user.userPrincipalName),\n    ActorIP  = tostring(InitiatedBy.user.ipAddress),\n    TargetUPN = tostring(TargetResources[0].userPrincipalName)\n| project TimeGenerated, ActorUPN, ActorIP, TargetUPN, OperationName, ResultDescription\n| sort by TimeGenerated desc\n",
+        "description": "Every TAP creation event — review actor, target, and justification.",
+        "source": "Threat Hunting Wiki — T022 tap-abuse"
+      },
+      {
+        "lang": "kql",
+        "query": "SigninLogs\n| where TimeGenerated > ago(24h)\n| where ResultType == 0\n| extend AuthMethod = tostring(parse_json(AuthenticationDetails)[0].authenticationMethod)\n| where AuthMethod == \"Temporary Access Pass\"\n| project TimeGenerated, UserPrincipalName, IPAddress, Location, AuthMethod,\n          AppDisplayName, ConditionalAccessStatus\n| sort by TimeGenerated desc\n",
+        "description": "Sign-ins completed using a Temporary Access Pass.",
+        "source": "Threat Hunting Wiki — T022 tap-abuse"
+      }
+    ],
+    "mitigations": [
+      "Restrict TAP policy to specific groups, short lifetime, and isUsableOnce=true",
+      "Scope Authentication Admin roles to the smallest Administrative Unit required; avoid tenant-wide assignments",
+      "Alert on every TAP creation and require ticketed approval for privileged users",
+      "Review cross-tenant access settings; suppress consent only for explicitly trusted tenants",
+      "Enable Continuous Access Evaluation to shorten token validity where supported"
+    ],
+    "refs": [
+      {
+        "title": "Microsoft — Temporary Access Pass overview",
+        "url": "https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass"
+      },
+      {
+        "title": "Microsoft — Authentication methods policy",
+        "url": "https://learn.microsoft.com/en-us/entra/identity/authentication/concept-authentication-methods-manage"
+      }
+    ],
+    "since": "2021 (TAP GA) / 2024+ (abuse in CARTE/MCRP chains)"
+  },
+  {
     "id": "trusted-mail-relays",
     "name": "Transactional Mail Relay Laundering",
     "category": "Trusted Delivery",
@@ -978,9 +1368,9 @@ const ENTRIES = [
 ];
 
 const STATS = {
-  "entries": 17,
-  "variants": 75,
-  "kits": 55,
+  "entries": 22,
+  "variants": 95,
+  "kits": 71,
   "categories": [
     "Identity Flow Abuse",
     "Reputation Laundering",
@@ -992,11 +1382,11 @@ const STATS = {
 const CATEGORY_META = {
   "Identity Flow Abuse": {
     "color": "#6fd3d3",
-    "blurb": "Abused auth mechanisms — the phish happens on the real login page"
+    "blurb": "Abused auth mechanisms � the phish happens on the real login page"
   },
   "User-Assisted Execution": {
     "color": "#d3b46f",
-    "blurb": "The victim is the dropper — clipboard, QR, paste-to-run tricks"
+    "blurb": "The victim is the dropper � clipboard, QR, paste-to-run tricks"
   },
   "Trusted Delivery": {
     "color": "#b48fd3",

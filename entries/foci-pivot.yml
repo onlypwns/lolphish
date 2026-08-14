@@ -27,6 +27,61 @@ detections:
 - Token redemptions for client IDs with no corresponding interactive sign-in
 - Single user, many first-party client IDs in short windows
 - Correlate refresh events against phishing-sign-in events (device code, AiTM ASN)
+detection_code:
+- lang: kql
+  query: |
+    AADNonInteractiveUserSignInLogs
+    | where TimeGenerated > ago(1h)
+    | where ResultType == 0
+    | summarize
+        DistinctApps  = dcount(AppId),
+        AppList       = make_set(AppDisplayName),
+        TokenCount    = count(),
+        UniqueIPs     = dcount(IPAddress),
+        IPList        = make_set(IPAddress),
+        FirstSeen     = min(TimeGenerated),
+        LastSeen      = max(TimeGenerated)
+        by UserPrincipalName, IPAddress, bin(TimeGenerated, 5m)
+    | where DistinctApps > 2 and TokenCount > 3
+    | extend RiskSignal = case(
+        DistinctApps >= 5, "CRITICAL — full FOCI family sweep",
+        DistinctApps >= 3, "HIGH — multi-app token exchange",
+        "MEDIUM — review"
+      )
+    | sort by DistinctApps desc, TokenCount desc
+  description: Rapid non-interactive token acquisition across multiple first-party app IDs from the same IP.
+  source: Threat Hunting Wiki — D002 foci-token-anomalies
+- lang: kql
+  query: |
+    let LookbackWindow = 2h;
+    let PivotWindow    = 30m;
+    let GraphTokens =
+        AADNonInteractiveUserSignInLogs
+        | where TimeGenerated > ago(LookbackWindow)
+        | where ResultType == 0
+        | where ResourceDisplayName == "Microsoft Graph"
+        | project GraphTime = TimeGenerated, UPN = UserPrincipalName, GraphIP = IPAddress;
+    GraphTokens
+    | join kind=inner (
+        AADNonInteractiveUserSignInLogs
+        | where TimeGenerated > ago(LookbackWindow)
+        | where ResultType == 0
+        | where ResourceDisplayName == "Windows Azure Service Management API"
+        | project ArmTime = TimeGenerated, UPN = UserPrincipalName, ArmIP = IPAddress
+    ) on UPN
+    | where ArmTime > GraphTime
+          and ArmTime < datetime_add('minute', PivotWindow, GraphTime)
+    | project
+        GraphTime,
+        ArmTime,
+        MinutesBetween = datetime_diff('minute', ArmTime, GraphTime),
+        UPN,
+        GraphIP,
+        ArmIP,
+        SameIP = GraphIP == ArmIP
+    | sort by MinutesBetween asc
+  description: FOCI-mediated escalation from Microsoft Graph to Azure Resource Manager within 30 minutes.
+  source: Threat Hunting Wiki — D002 foci-token-anomalies
 mitigations:
 - Revoke at the user level (all refresh tokens) on any identity-phish event — not per-session
 - Continuous Access Evaluation where supported
