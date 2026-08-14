@@ -4,7 +4,7 @@ The catalog is only as good as its coverage. Three ways to contribute, easiest f
 
 ## 1. Propose an entry (no Git knowledge needed)
 
-Open a **[New Entry Proposal](../../issues/new?template=new-entry.yml)** issue and fill in the YAML template. A maintainer reviews it; when it's labeled `approved`, automation turns it into a PR, and merging the PR rebuilds the site within about a minute. You get credited in the PR and issue thread.
+Open a **[New Entry Proposal](../../issues/new?template=new-entry.yml)** issue and fill in the YAML template. A maintainer will convert it into a YAML file and PR it, or you can PR directly once you're ready.
 
 ## 2. Report a variant or fix
 
@@ -19,7 +19,7 @@ python3 build.py --check                              # validate (needs: pyyaml 
 python3 build.py                                      # regenerate data.js + api/entries.json
 ```
 
-PR the new `entries/*.yml` file **and** the regenerated `data.js` / `api/entries.json` (or leave them — CI rebuilds on merge anyway).
+PR the new `entries/*.yml` file **and** the regenerated `data.js` / `api/entries.json`.
 
 ## Ground rules
 
@@ -31,7 +31,7 @@ PR the new `entries/*.yml` file **and** the regenerated `data.js` / `api/entries
 
 ## Schema reference
 
-See `entries/_template.yml` (annotated) and `schema/entry.schema.json` (enforced in CI). The four categories are fixed: **Identity Flow Abuse**, **User-Assisted Execution**, **Trusted Delivery**, **Reputation Laundering** — propose a fifth by opening an issue first.
+See `entries/_template.yml` (annotated) and `schema/entry.schema.json`. The four categories are fixed: **Identity Flow Abuse**, **User-Assisted Execution**, **Trusted Delivery**, **Reputation Laundering** — propose a fifth by opening an issue first.
 
 ## Credit
 

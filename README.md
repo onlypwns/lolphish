@@ -63,7 +63,7 @@ Every entry is a full record, LOLBAS-style:
 └── README.md
 ```
 
-> **Contribution model:** copy `entries/_template.yml`, fill it in, and PR the new YAML. CI validates it against the schema and rebuilds `data.js` + `api/entries.json` on merge. No site code needs to be touched.
+> **Contribution model:** copy `entries/_template.yml`, fill it in, run `python3 build.py`, and PR the new YAML together with the regenerated `data.js` and `api/entries.json`. No site code needs to be touched.
 
 ## Running locally
 
