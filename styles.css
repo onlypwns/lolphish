@@ -117,13 +117,14 @@ header {
   background: var(--btn-bg);
   border: 1px solid var(--border);
   color: var(--muted);
-  font: inherit; font-size: 13px;
-  width: 30px; height: 30px;
-  border-radius: 6px;
+  font: inherit; font-size: 15px;
+  width: 36px; height: 36px;
+  border-radius: 8px;
   cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .theme-btn:hover { border-color: var(--aqua); color: var(--aqua); }
+.theme-btn:active { transform: scale(0.96); }
 .header-stats {
   display: flex; gap: 20px;
   font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -190,9 +191,11 @@ header {
   background: var(--btn-bg); border: 1px solid var(--border);
   color: var(--muted); font: inherit; font-size: 10px;
   letter-spacing: 0.12em; text-transform: uppercase;
-  padding: 6px 12px; cursor: pointer; align-self: center; margin-right: 12px;
+  padding: 8px 14px; cursor: pointer; align-self: center; margin-right: 12px;
+  border-radius: 4px;
 }
 .clear-btn:hover { color: var(--aqua); border-color: var(--aqua); }
+.clear-btn:active { transform: scale(0.96); }
 
 /* ---------- layout ---------- */
 main {
