@@ -4,55 +4,74 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LOLPHISH — Living Off Legitimate Phishing Infrastructure</title>
-<meta name="description" content="A LOLBAS-style catalog of legitimate services, identity flows, and trust surfaces abused for phishing. Built for defenders.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23111'/><text x='50' y='68' text-anchor='middle' font-size='52' fill='%237fe8e8' font-family='monospace' font-weight='600'>LP</text></svg>">
+<meta name="description" content="A community catalog of legitimate services, identity flows, and trust surfaces abused for phishing. Built for defenders.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d7377'/><path d='M32 32h36v8H32zM32 48h24v8H32zM32 64h36v8H32z' fill='%23fff'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=0.3">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=0.4">
 </head>
 <body>
 
-<header>
-  <div class="brand">
-    <h1>LOLPHISH</h1>
-    <span class="tagline">Living Off Legitimate Phishing Infrastructure</span>
+<header class="site-header">
+  <div class="header-start">
+    <a class="logo" href="/lolphish/" aria-label="LOLPHISH home">
+      <svg viewBox="0 0 40 40" width="32" height="32" aria-hidden="true">
+        <rect width="40" height="40" rx="10" fill="var(--aqua)"/>
+        <path d="M12 12h16v4H12zM12 20h11v4H12zM12 28h16v4H12z" fill="var(--bg)"/>
+      </svg>
+      <div class="logo-text">
+        <span class="logo-name">LOLPHISH</span>
+        <span class="logo-tag">Living Off Legitimate Phishing Infrastructure</span>
+      </div>
+    </a>
   </div>
-  <div class="header-actions">
-    <button id="theme-toggle" class="theme-btn" type="button" aria-label="Toggle theme">◐</button>
+  <div class="header-end">
     <div class="header-stats">
       <span><b id="stat-entries">0</b> entries</span>
       <span><b id="stat-variants">0</b> variants</span>
-      <span><b id="stat-kits">0</b> kits &amp; actors</span>
+      <span><b id="stat-kits">0</b> kits</span>
       <span><b id="stat-vendors">0</b> vendors</span>
     </div>
+    <button id="theme-toggle" class="theme-btn" type="button" aria-label="Toggle theme" title="Toggle theme">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
   </div>
 </header>
 
+<div class="hero">
+  <h2>A catalog of legitimate mechanisms abused for phishing.</h2>
+  <p>Auth flows, notification pipelines, hosting surfaces, and social-engineering primitives — structured for detection engineers and threat modelers.</p>
+</div>
+
 <div class="filterbar">
   <div class="search-wrap">
-    <span class="prompt">&gt;</span>
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
     <input id="search" type="text" placeholder="Search primitives, kits, vendors, surfaces…" autocomplete="off" spellcheck="false">
   </div>
-  <div class="select-wrap">
-    <label for="f-category">Category</label>
-    <select id="f-category"><option value="">All</option></select>
+  <div class="filter-group">
+    <div class="select-wrap">
+      <label for="f-category">Category</label>
+      <select id="f-category"><option value="">All</option></select>
+    </div>
+    <div class="select-wrap">
+      <label for="f-vendor">Vendor</label>
+      <select id="f-vendor"><option value="">All</option></select>
+    </div>
   </div>
-  <div class="select-wrap">
-    <label for="f-vendor">Vendor</label>
-    <select id="f-vendor"><option value="">All</option></select>
+  <div class="filter-actions">
+    <span class="count-note" id="count"></span>
+    <button id="clear-filters" class="clear-btn" type="button" title="Clear all filters">Clear</button>
   </div>
-  <div class="count-note" id="count"></div>
-  <button id="clear-filters" class="clear-btn" type="button" title="Clear all filters">clear</button>
 </div>
 
 <main>
-  <section>
+  <section class="catalog">
     <div class="table-head">
-      <span>Abuse Primitive</span>
-      <span>Category</span>
+      <span class="h-name">Abuse primitive</span>
+      <span class="h-cat">Category</span>
       <span class="h-vendor">Vendors</span>
-      <span class="h-variants" style="text-align:right">Variants</span>
+      <span class="h-variants">Variants</span>
     </div>
     <div id="table"></div>
   </section>
@@ -63,30 +82,26 @@
 </main>
 
 <section class="about">
-  <div>
+  <div class="about-card">
     <h3>What this is</h3>
-    <p>LOLBAS catalogs abusable binaries. LOTS catalogs abusable domains. LOLPHISH catalogs the layer in between and beyond: the legitimate <b>mechanisms</b> — auth flows, notification pipelines, hosting surfaces, social-engineering primitives — that phishing industrialized on top of.</p>
+    <p>LOLBAS catalogs abusable binaries. LOTS catalogs abusable domains. LOLPHISH catalogs the layer in between: the legitimate <b>mechanisms</b> that phishing has industrialized on top of.</p>
   </div>
-  <div>
-    <h3>Entry anatomy</h3>
-    <p>Each entry documents the legitimate purpose, the abuse primitive, named variants, known kits and actors, trust surfaces, ATT&amp;CK mappings, detection telemetry, and the structural mitigation — not just the IOC of the week.</p>
+  <div class="about-card">
+    <h3>Built for defenders</h3>
+    <p>Every entry documents the abuse primitive, variants, kits, trust surfaces, ATT&amp;CK mappings, detection telemetry, and structural mitigations — not just the IOC of the week.</p>
   </div>
-  <div>
-    <h3>Defensive use only</h3>
-    <p>Everything here is publicly documented research, structured for detection engineering and threat modeling. If you find a technique useful, your job is to go kill it in your environment.</p>
-  </div>
-  <div>
-    <h3>Siblings &amp; sources</h3>
+  <div class="about-card">
+    <h3>Sources</h3>
     <p><a href="https://lots-project.com/" target="_blank" rel="noopener">LOTS Project</a> · <a href="https://mhaggis.github.io/ClickGrab/techniques.html" target="_blank" rel="noopener">ClickGrab</a> · <a href="https://clickfix.carsonww.com/" target="_blank" rel="noopener">ClickFix Hunter</a> · <a href="https://entrascopes.com/" target="_blank" rel="noopener">entrascopes</a> · <a href="https://lolbas-project.github.io/" target="_blank" rel="noopener">LOLBAS</a></p>
   </div>
 </section>
 
 <footer>
-  <span>LOLPHISH v0.3 — community catalog, WIP · <a href="api/entries.json">API</a></span>
+  <span>LOLPHISH v0.4 — community catalog · <a href="api/entries.json">API</a></span>
   <span>the phish is the platform</span>
 </footer>
 
-<script src="data.js?v=0.3"></script>
-<script src="app.js?v=0.3"></script>
+<script src="data.js?v=0.4"></script>
+<script src="app.js?v=0.4"></script>
 </body>
 </html>

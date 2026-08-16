@@ -91,8 +91,11 @@
     updateThemeIcon(next);
   }
 
+  const sunIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
+  const moonIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+
   function updateThemeIcon(theme) {
-    themeBtn.textContent = theme === "dark" ? "◐" : "◑";
+    themeBtn.innerHTML = theme === "dark" ? sunIcon : moonIcon;
     themeBtn.setAttribute("title", theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
   }
 
@@ -136,8 +139,8 @@
   function renderDetail(e) {
     if (!e) {
       detailEl.innerHTML =
-        '<div class="d-empty">SELECT AN ENTRY<span class="blink">_</span><br><br>' +
-        "Click any row to pin it here and expand its full record inline.</div>";
+        '<div class="d-empty"><b>Select an entry</b><br><br>' +
+        "Click any row to see its full record, detection guidance, and references here.</div>";
       return;
     }
     detailEl.innerHTML = detailHTML(e);
@@ -146,7 +149,7 @@
   /* ---- expandable body ---- */
   function bodyHTML(e) {
     const sect = (title, inner, wide) =>
-      `<div class="sect${wide ? " wide" : ""}"><h4><span class="tick">#</span>${title}</h4>${inner}</div>`;
+      `<div class="sect${wide ? " wide" : ""}"><h4>${title}</h4>${inner}</div>`;
     const list = (arr) => `<ul class="ticklist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
     const tags = (arr, cls) => `<div class="tagrow">${arr.map(x => `<span class="tag ${cls}">${esc(x)}</span>`).join("")}</div>`;
     const codeBlock = (snip, idx) => {
@@ -207,7 +210,15 @@
     });
 
     if (!visible.length) {
-      tableEl.innerHTML = '<div style="padding:32px 24px;color:var(--muted)">// no entries match — loosen the filters</div>';
+      tableEl.innerHTML = `
+        <div class="empty-state">
+          <b>No entries match</b>
+          Try loosening the filters or <a href="#" class="clear-link">clear all filters</a>.
+        </div>`;
+      tableEl.querySelector(".clear-link").addEventListener("click", (ev) => {
+        ev.preventDefault();
+        clearBtn.click();
+      });
     }
   }
 

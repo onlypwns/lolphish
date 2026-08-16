@@ -117,7 +117,7 @@ def build(entries):
 
     os.makedirs(os.path.dirname(API_PATH), exist_ok=True)
     with open(API_PATH, "w", encoding="utf-8") as f:
-        json.dump({"version": "0.3", "generated_by": "lolphish build.py",
+        json.dump({"version": "0.4", "generated_by": "lolphish build.py",
                    "stats": stats, "entries": entries}, f, indent=2, ensure_ascii=False)
 
     print(f"OK - {stats['entries']} entries, {stats['variants']} variants, "
