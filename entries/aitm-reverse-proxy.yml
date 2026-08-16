@@ -2,6 +2,7 @@
 id: aitm-reverse-proxy
 name: AiTM Reverse-Proxy Phishing
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Entra ID
 - Google Workspace
@@ -75,4 +76,7 @@ refs:
   url: https://github.com/kgretzky/evilginx2
 - title: Microsoft — Detecting and mitigating a multi-stage AiTM phishing and BEC campaign
   url: https://www.microsoft.com/en-us/security/blog/2023/06/08/detecting-and-mitigating-a-multi-stage-aitm-phishing-and-bec-campaign/
+related:
+- entra-device-code
+- smtp-mfa-bypass
 since: 2018 (Modlishka) / 2022+ (PhaaS industrialization)

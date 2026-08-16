@@ -2,6 +2,7 @@
 id: serverless-hosting
 name: Serverless & JAMstack Phish Hosting
 category: Reputation Laundering
+status: active
 vendors:
 - Cloudflare Workers/Pages
 - Vercel

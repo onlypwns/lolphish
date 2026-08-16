@@ -2,6 +2,7 @@
 id: static-site-sas-lure
 name: Azure Static Website SAS Lure
 category: Reputation Laundering
+status: active
 vendors:
 - Microsoft Azure
 summary: Azure Storage static websites serve content from *.z##.web.core.windows.net — a Microsoft-owned domain with TLS, CDN routing, and a "computing/software" web-filter category. A static page referencing a blob via SAS token is a normal delivery pattern.

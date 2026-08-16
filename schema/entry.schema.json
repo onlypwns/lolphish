@@ -58,6 +58,19 @@
         }
       }
     },
+    "related": {
+      "type": "array",
+      "description": "IDs of related catalog entries",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      }
+    },
+    "status": {
+      "type": "string",
+      "description": "Maturity/state of the abuse primitive",
+      "enum": ["active", "partially-mitigated", "mitigated", "patched", "historical"]
+    },
     "since": { "type": "string", "minLength": 4 }
   }
 }

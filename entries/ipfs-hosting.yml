@@ -2,6 +2,7 @@
 id: ipfs-hosting
 name: IPFS / Decentralized Phish Hosting
 category: Reputation Laundering
+status: active
 vendors:
 - IPFS gateways
 - Filecoin/Arweave ecosystem

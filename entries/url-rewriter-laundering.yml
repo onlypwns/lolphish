@@ -2,6 +2,7 @@
 id: url-rewriter-laundering
 name: URL Rewriter & Open-Redirect Laundering
 category: Reputation Laundering
+status: active
 vendors:
 - Proofpoint URL Defense
 - Microsoft Safe Links

@@ -2,6 +2,7 @@
 id: foci-pivot
 name: FOCI Token Family Pivoting
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Entra ID
 summary: 'Family of Client IDs (FOCI) lets Microsoft''s own apps share refresh tokens: a refresh token
@@ -91,4 +92,7 @@ refs:
   url: https://entrascopes.com/
 - title: AADInternals — FOCI research
   url: https://aadinternals.com/
+related:
+- entra-device-code
+- entra-ropc-firstparty
 since: 2020 (public research)

@@ -2,6 +2,7 @@
 id: trusted-mail-relays
 name: Transactional Mail Relay Laundering
 category: Trusted Delivery
+status: active
 vendors:
 - SendGrid
 - Amazon SES

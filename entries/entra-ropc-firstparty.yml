@@ -2,6 +2,7 @@
 id: entra-ropc-firstparty
 name: ROPC + First-Party Client ID Abuse
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Entra ID
 summary: Resource Owner Password Credentials is a legacy OAuth grant where username+password are sent
@@ -52,4 +53,6 @@ refs:
   url: https://entrascopes.com/
 - title: AADInternals
   url: https://aadinternals.com/
+related:
+- foci-pivot
 since: 2019 (research) / ongoing in the wild

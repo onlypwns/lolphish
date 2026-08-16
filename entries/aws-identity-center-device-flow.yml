@@ -2,6 +2,7 @@
 id: aws-identity-center-device-flow
 name: AWS Identity Center Device Flow & 'aws login' Phishing
 category: Identity Flow Abuse
+status: partially-mitigated
 vendors:
 - AWS (IAM Identity Center)
 summary: 'AWS CLI authentication offers two browser-mediated flows: the classic IAM Identity Center (formerly

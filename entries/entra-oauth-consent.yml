@@ -2,6 +2,7 @@
 id: entra-oauth-consent
 name: Illicit Consent Grant (OAuth Consent Phishing)
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Entra ID
 - Google Workspace

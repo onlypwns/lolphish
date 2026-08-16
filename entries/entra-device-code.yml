@@ -2,6 +2,7 @@
 id: entra-device-code
 name: Device Code Flow Phishing
 category: Identity Flow Abuse
+status: partially-mitigated
 vendors:
 - Microsoft Entra ID
 summary: RFC 8628 device authorization grant — built so input-constrained devices (TVs, consoles, IoT)
@@ -117,4 +118,8 @@ refs:
   url: https://www.huntress.com/blog/kali365-device-code-phishing-kit
 - title: RFC 8628 — OAuth 2.0 Device Authorization Grant
   url: https://datatracker.ietf.org/doc/html/rfc8628
+related:
+- foci-pivot
+- entra-oauth-consent
+- aitm-reverse-proxy
 since: 2021 (POCs) / 2024-25 (mass campaigns)

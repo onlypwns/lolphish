@@ -35,6 +35,17 @@
     venEl.appendChild(o);
   });
 
+  /* precompute search haystack once */
+  ENTRIES.forEach(e => {
+    const codeHay = (e.detection_code || []).map(c => [c.lang, c.query, c.description].join(" ")).join(" ");
+    e._search = [
+      e.id, e.name, e.category, e.vendors.join(" "), e.summary, e.abuse,
+      e.variants.join(" "), e.kits.join(" "), e.surfaces.join(" "),
+      e.attack.join(" "), e.detections.join(" "), e.mitigations.join(" "),
+      e.status || "", codeHay
+    ].join(" ").toLowerCase();
+  });
+
   /* ---- header stats ---- */
   $("#stat-entries").textContent = STATS.entries;
   $("#stat-variants").textContent = STATS.variants;
@@ -103,32 +114,36 @@
   function matches(e) {
     if (state.category && e.category !== state.category) return false;
     if (state.vendor && !e.vendors.includes(state.vendor)) return false;
-    if (state.q) {
-      const codeHay = (e.detection_code || []).map(c => [c.lang, c.query, c.description].join(" ")).join(" ");
-      const hay = [
-        e.id, e.name, e.category, e.vendors.join(" "), e.summary, e.abuse,
-        e.variants.join(" "), e.kits.join(" "), e.surfaces.join(" "),
-        e.attack.join(" "), e.detections.join(" "), e.mitigations.join(" "), codeHay
-      ].join(" ").toLowerCase();
-      if (!hay.includes(state.q)) return false;
-    }
+    if (state.q && !e._search.includes(state.q)) return false;
     return true;
   }
 
   /* ---- detail panel ---- */
+  const statusLabel = {
+    active: "Active",
+    "partially-mitigated": "Partially mitigated",
+    mitigated: "Mitigated",
+    patched: "Patched",
+    historical: "Historical"
+  };
+
   function detailHTML(e) {
     const vendorChips = e.vendors.map(v =>
       `<span class="v-chip" data-vendor="${esc(v)}">${esc(v)}</span>`).join("");
+    const statusPill = e.status
+      ? `<span class="status-pill status-${esc(e.status)}">${esc(statusLabel[e.status] || e.status)}</span>`
+      : "";
     return `
       <div class="d-kicker">${esc(e.category)}</div>
       <div class="d-name">${esc(e.name)}</div>
       <div class="d-meta">
         <span class="cat-pill" style="color:${catColor[e.category]}">${esc(e.category)}</span>
+        ${statusPill}
         ${vendorChips}
         <a class="permalink" href="#${esc(e.id)}" title="Permalink to this entry">#${esc(e.id)}</a>
       </div>
       <div class="d-summary">${esc(e.summary)}</div>
-      <div class="d-abuse">${esc(e.abuse.slice(0, 220))}${e.abuse.length > 220 ? "…" : ""}</div>
+      <div class="d-abuse">${esc(e.abuse)}</div>
       <div class="d-counts">
         <span><b>${e.variants.length}</b>Variants</span>
         <span><b>${e.kits.length}</b>Kits/Actors</span>
@@ -177,6 +192,7 @@
         ${sect("Structural mitigations", list(e.mitigations))}
         ${sect("Trust surfaces", tags(e.surfaces, "surface"))}
         ${sect("ATT&CK", list(e.attack))}
+        ${relatedSection(e)}
         ${sect("References", `<ul class="reflist">${e.refs.map(r =>
           `<li><a href="${r.url}" target="_blank" rel="noopener">${esc(r.title)}</a></li>`).join("")}</ul>
           <div class="since">First documented: <b>${esc(e.since)}</b></div>`, true)}
@@ -298,7 +314,14 @@
 
   function applyFilters() {
     render();
+    updateClearButton();
     writeUrlState();
+  }
+
+  function updateClearButton() {
+    const active = state.q || state.category || state.vendor;
+    clearBtn.disabled = !active;
+    clearBtn.classList.toggle("disabled", !active);
   }
 
   searchEl.addEventListener("input", () => {
@@ -329,6 +352,42 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
+  /* ---- related entry cross-links ---- */
+  document.addEventListener("click", (ev) => {
+    const link = ev.target.closest(".related-link");
+    if (!link) return;
+    ev.preventDefault();
+    const id = link.dataset.id;
+    if (!id) return;
+    const target = document.querySelector(`.entry[data-id="${CSS.escape(id)}"] .row`);
+    if (target) {
+      toggle(target.parentElement);
+      target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } else {
+      // target is filtered out: clear filters, then open
+      state.q = ""; state.category = ""; state.vendor = "";
+      searchEl.value = ""; catEl.value = ""; venEl.value = "";
+      applyFilters();
+      requestAnimationFrame(() => {
+        const retry = document.querySelector(`.entry[data-id="${CSS.escape(id)}"] .row`);
+        if (retry) {
+          toggle(retry.parentElement);
+          retry.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
+    }
+  });
+
+  function relatedSection(e) {
+    if (!e.related || !e.related.length) return "";
+    const links = e.related.map(id => {
+      const target = ENTRIES.find(x => x.id === id);
+      const name = target ? target.name : id;
+      return `<a class="related-link" href="#${esc(id)}" data-id="${esc(id)}">${esc(name)}</a>`;
+    }).join("");
+    return `<div class="sect wide"><h4>See also</h4><div class="related-row">${links}</div></div>`;
+  }
+
   function esc(s) {
     return String(s).replace(/[&<>"']/g, c =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -338,6 +397,7 @@
   initTheme();
   readUrlState();
   render();
+  updateClearButton();
 
   // open hash target after first render
   const hashId = (location.hash || "").replace(/^#/, "");

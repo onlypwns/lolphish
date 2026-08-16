@@ -2,6 +2,7 @@
 id: quishing
 name: QR Code Phishing (Quishing)
 category: User-Assisted Execution
+status: active
 vendors:
 - Microsoft 365
 - Any email + mobile target

@@ -2,6 +2,7 @@
 id: jwt-assertion-attack
 name: JWT Assertion / Certificate-Based Auth Abuse
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Entra ID
 summary: OAuth client-credential flows allow an app to authenticate with a certificate instead of a secret.

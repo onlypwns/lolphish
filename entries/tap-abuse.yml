@@ -2,6 +2,7 @@
 id: tap-abuse
 name: Temporary Access Pass (TAP) Abuse
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Entra ID
 summary: Temporary Access Pass is a time-limited, single-factor code issued by privileged Entra ID roles

@@ -2,6 +2,7 @@
 id: noauth-claims-abuse
 name: nOAuth / Mutable Token Claims Abuse
 category: Identity Flow Abuse
+status: partially-mitigated
 vendors:
 - Microsoft Entra ID
 summary: >

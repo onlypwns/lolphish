@@ -9,7 +9,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=0.4">
+<link rel="stylesheet" href="styles.css?v=0.5">
+<script>
+  /* theme init before first paint to prevent FOUC */
+  (function () {
+    try {
+      var saved = localStorage.getItem("lolphish-theme");
+      var systemLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+      document.documentElement.setAttribute("data-theme", saved || (systemLight ? "light" : "dark"));
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
 
@@ -101,7 +111,7 @@
   <span>the phish is the platform</span>
 </footer>
 
-<script src="data.js?v=0.4"></script>
-<script src="app.js?v=0.4"></script>
+<script src="data.js?v=0.5"></script>
+<script src="app.js?v=0.5"></script>
 </body>
 </html>

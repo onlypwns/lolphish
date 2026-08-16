@@ -2,6 +2,7 @@
 id: m365-direct-send
 name: Exchange Direct Send & Tenant Sender Abuse
 category: Trusted Delivery
+status: active
 vendors:
 - Microsoft 365 / Exchange Online
 summary: Direct Send lets devices and apps inside an org mail via the tenant smart host (<tenant>.mail.protection.outlook.com)

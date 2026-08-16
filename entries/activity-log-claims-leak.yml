@@ -2,6 +2,7 @@
 id: activity-log-claims-leak
 name: Azure Activity Log Managed-Identity Claims Leak
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Azure
 summary: Every call to Azure Resource Manager is written to the Activity Log with the full JWT claim payload of the calling identity. For Managed Identities, the claims include both the MI principal ID and the resource ID of the host that minted the token.

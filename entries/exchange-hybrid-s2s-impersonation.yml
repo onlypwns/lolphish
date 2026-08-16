@@ -2,6 +2,7 @@
 id: exchange-hybrid-s2s-impersonation
 name: Exchange Hybrid S2S Actor Token Impersonation
 category: Identity Flow Abuse
+status: patched
 vendors:
 - Microsoft Exchange Online
 - Microsoft Exchange Server
@@ -54,4 +55,7 @@ refs:
   url: https://techcommunity.microsoft.com/blog/exchange/exchange-server-security-changes-for-hybrid-deployments/4396833
 - title: CVE-2025-53786 — MSRC advisory
   url: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2025-53786
+related:
+- jwt-assertion-attack
+- windows-hello-key-theft
 since: "2025"

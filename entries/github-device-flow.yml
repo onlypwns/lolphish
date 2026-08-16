@@ -2,6 +2,7 @@
 id: github-device-flow
 name: GitHub Device Flow & OAuth Phishing
 category: Identity Flow Abuse
+status: active
 vendors:
 - GitHub
 summary: GitHub implements the same RFC 8628 device flow for CLIs and headless environments (github.com/login/device),

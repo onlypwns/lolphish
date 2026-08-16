@@ -2,6 +2,7 @@
 id: smtp-mfa-bypass
 name: SMTP Auth MFA Bypass / Legacy Protocol Delivery
 category: Trusted Delivery
+status: partially-mitigated
 vendors:
 - Microsoft 365 / Exchange Online
 summary: SMTP Auth is a legacy mail-sending protocol in Exchange Online. Even when modern authentication
@@ -72,4 +73,7 @@ refs:
   url: https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/disable-basic-authentication-in-exchange-online
 - title: Microsoft — Enable or disable SMTP AUTH
   url: https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/authenticate-an-imap-pop-smtp-application-by-oauth
+related:
+- m365-direct-send
+- trusted-mail-relays
 since: Chronic / industrialized in BEC 2022+

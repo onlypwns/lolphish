@@ -34,6 +34,8 @@ Every entry is a full record, LOLBAS-style:
 | `detections` | Telemetry + hunting guidance |
 | `mitigations` | Structural controls — not IOC-of-the-week |
 | `refs` | Public sources |
+| `related` | IDs of related catalog entries |
+| `status` | Maturity/state: `active`, `partially-mitigated`, `mitigated`, `patched`, `historical` |
 | `since` | First widely documented |
 
 ### Categories

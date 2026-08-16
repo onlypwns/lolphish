@@ -2,6 +2,7 @@
 id: saas-invite-phish
 name: SaaS Notification & Invite Phishing
 category: Trusted Delivery
+status: active
 vendors:
 - DocuSign
 - SharePoint/OneDrive
@@ -58,4 +59,7 @@ refs:
   url: https://lots-project.com/
 - title: DocuSign — Safety alerts and updates
   url: https://www.docusign.com/trust/safety-alerts
+related:
+- trusted-mail-relays
+- calendar-invite-phish
 since: 2019+ (industrialized 2023+)

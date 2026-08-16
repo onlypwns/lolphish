@@ -2,6 +2,7 @@
 id: windows-hello-key-theft
 name: Windows Hello for Business Key Theft & Replay
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Windows
 - Microsoft Entra ID
@@ -49,4 +50,6 @@ refs:
   url: https://dirkjanm.io/borrowing-windows-hello-keys/
 - title: ROADtools winhello_assertion
   url: https://github.com/dirkjanm/ROADtools/tree/master/winhello_assertion
+related:
+- foci-pivot
 since: "2025"

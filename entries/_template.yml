@@ -18,6 +18,10 @@ name: Human-Readable Technique Name
 #   Reputation Laundering
 category: Identity Flow Abuse
 
+# Maturity/state of the abuse primitive:
+#   active | partially-mitigated | mitigated | patched | historical
+status: active
+
 vendors:
   - Vendor / Platform Name
 

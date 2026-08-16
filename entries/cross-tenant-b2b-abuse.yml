@@ -2,6 +2,7 @@
 id: cross-tenant-b2b-abuse
 name: Cross-Tenant B2B Collaboration Abuse
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Entra ID
 summary: Microsoft Entra External Identities let users from one tenant access resources in another as B2B guests. Cross-tenant access settings can suppress the consent/MFA prompt for trusted partner tenants, streamlining legitimate collaboration.
@@ -51,4 +52,7 @@ refs:
   url: https://github.com/
 - title: Microsoft — Cross-tenant access settings
   url: https://learn.microsoft.com/en-us/entra/external-id/cross-tenant-access-overview
+related:
+- tap-abuse
+- pim-abuse
 since: "2024"

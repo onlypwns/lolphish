@@ -2,6 +2,7 @@
 id: pim-abuse
 name: Privileged Identity Management (PIM) Role Activation Abuse
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Entra ID
 summary: Privileged Identity Management enforces just-in-time activation for eligible Entra ID/Azure AD roles,

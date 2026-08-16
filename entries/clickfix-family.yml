@@ -2,6 +2,7 @@
 id: clickfix-family
 name: ClickFix Family (User-Assisted Execution)
 category: User-Assisted Execution
+status: active
 vendors:
 - Windows
 - macOS

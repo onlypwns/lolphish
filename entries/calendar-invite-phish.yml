@@ -2,6 +2,7 @@
 id: calendar-invite-phish
 name: Calendar Invite Phishing
 category: Trusted Delivery
+status: active
 vendors:
 - Google Calendar
 - Microsoft 365

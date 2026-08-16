@@ -60,6 +60,7 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/activity-log"
       }
     ],
+    "status": "active",
     "since": "2026"
   },
   {
@@ -135,6 +136,11 @@ const ENTRIES = [
         "url": "https://www.microsoft.com/en-us/security/blog/2023/06/08/detecting-and-mitigating-a-multi-stage-aitm-phishing-and-bec-campaign/"
       }
     ],
+    "related": [
+      "entra-device-code",
+      "smtp-mfa-bypass"
+    ],
+    "status": "active",
     "since": "2018 (Modlishka) / 2022+ (PhaaS industrialization)"
   },
   {
@@ -214,6 +220,7 @@ const ENTRIES = [
         "url": "https://pushsecurity.com/blog/device-code-phishing"
       }
     ],
+    "status": "partially-mitigated",
     "since": "2021 (Identity Center device flow) / 2025 (aws login OAuth)"
   },
   {
@@ -270,6 +277,7 @@ const ENTRIES = [
         "url": "https://workspaceupdates.googleblog.com/2021/12/prevent-unwanted-invitations-from-being.html"
       }
     ],
+    "status": "active",
     "since": "2019 (first waves) / 2024+ (resurgence + AI angle)"
   },
   {
@@ -332,6 +340,7 @@ const ENTRIES = [
         "url": "https://lots-project.com/"
       }
     ],
+    "status": "active",
     "since": "2024-25 (observed in PhaaS chains)"
   },
   {
@@ -416,6 +425,7 @@ const ENTRIES = [
         "url": "https://www.microsoft.com/en-us/security/security-insider/microsoft-threat-intelligence"
       }
     ],
+    "status": "active",
     "since": "2024 (named by Proofpoint) / 2025-26 (variant explosion)"
   },
   {
@@ -483,6 +493,11 @@ const ENTRIES = [
         "url": "https://maester.dev/"
       }
     ],
+    "related": [
+      "entra-device-code",
+      "cross-tenant-b2b-abuse"
+    ],
+    "status": "active",
     "since": "2025"
   },
   {
@@ -548,6 +563,11 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/entra/external-id/cross-tenant-access-overview"
       }
     ],
+    "related": [
+      "tap-abuse",
+      "pim-abuse"
+    ],
+    "status": "active",
     "since": "2024"
   },
   {
@@ -625,6 +645,12 @@ const ENTRIES = [
         "url": "https://datatracker.ietf.org/doc/html/rfc8628"
       }
     ],
+    "related": [
+      "foci-pivot",
+      "entra-oauth-consent",
+      "aitm-reverse-proxy"
+    ],
+    "status": "partially-mitigated",
     "since": "2021 (POCs) / 2024-25 (mass campaigns)"
   },
   {
@@ -693,6 +719,7 @@ const ENTRIES = [
         "url": "https://entrascopes.com/"
       }
     ],
+    "status": "active",
     "since": "2017 (Google Docs worm) / 2020+ (Entra industrialization)"
   },
   {
@@ -752,6 +779,10 @@ const ENTRIES = [
         "url": "https://aadinternals.com/"
       }
     ],
+    "related": [
+      "foci-pivot"
+    ],
+    "status": "active",
     "since": "2019 (research) / ongoing in the wild"
   },
   {
@@ -820,6 +851,11 @@ const ENTRIES = [
         "url": "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2025-53786"
       }
     ],
+    "related": [
+      "jwt-assertion-attack",
+      "windows-hello-key-theft"
+    ],
+    "status": "patched",
     "since": "2025"
   },
   {
@@ -882,6 +918,11 @@ const ENTRIES = [
         "url": "https://aadinternals.com/"
       }
     ],
+    "related": [
+      "entra-device-code",
+      "entra-ropc-firstparty"
+    ],
+    "status": "active",
     "since": "2020 (public research)"
   },
   {
@@ -940,6 +981,7 @@ const ENTRIES = [
         "url": "https://datatracker.ietf.org/doc/html/rfc8628"
       }
     ],
+    "status": "active",
     "since": "2023-24 (mass dev-targeting campaigns)"
   },
   {
@@ -997,6 +1039,7 @@ const ENTRIES = [
         "url": "https://lots-project.com/"
       }
     ],
+    "status": "active",
     "since": "2022+ (steady background hum)"
   },
   {
@@ -1065,6 +1108,7 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy"
       }
     ],
+    "status": "active",
     "since": "2020 (research) / 2024+ (Key Vault remote signing abuse)"
   },
   {
@@ -1119,6 +1163,7 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/exchange/mail-flow-best-practices/how-to-set-up-a-multifunction-device-or-application-to-send-email-using-microsoft-365-or-office-365"
       }
     ],
+    "status": "active",
     "since": "2025 (mass-abuse wave)"
   },
   {
@@ -1186,6 +1231,7 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/entra/identity-platform/optional-claims"
       }
     ],
+    "status": "partially-mitigated",
     "since": "2023 (nOAuth disclosure) / ongoing in multi-tenant app misconfigurations"
   },
   {
@@ -1255,6 +1301,7 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/entra/identity/conditional-access/concept-conditional-access-cloud-apps#authentication-context"
       }
     ],
+    "status": "active",
     "since": "2020+ (PIM exploitation in red-team chains)"
   },
   {
@@ -1311,6 +1358,7 @@ const ENTRIES = [
         "url": "https://techcommunity.microsoft.com/blog/microsoftdefenderforoffice365blog/protect-your-organizations-against-qr-code-phishing-with-defender-for-office-365/4007041"
       }
     ],
+    "status": "active",
     "since": "2023 (mass campaigns)"
   },
   {
@@ -1377,6 +1425,11 @@ const ENTRIES = [
         "url": "https://www.docusign.com/trust/safety-alerts"
       }
     ],
+    "related": [
+      "trusted-mail-relays",
+      "calendar-invite-phish"
+    ],
+    "status": "active",
     "since": "2019+ (industrialized 2023+)"
   },
   {
@@ -1447,6 +1500,7 @@ const ENTRIES = [
         "url": "https://lots-project.com/"
       }
     ],
+    "status": "active",
     "since": "2020+ (default PhaaS posture by 2023)"
   },
   {
@@ -1517,6 +1571,11 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/authenticate-an-imap-pop-smtp-application-by-oauth"
       }
     ],
+    "related": [
+      "m365-direct-send",
+      "trusted-mail-relays"
+    ],
+    "status": "partially-mitigated",
     "since": "Chronic / industrialized in BEC 2022+"
   },
   {
@@ -1580,6 +1639,7 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview"
       }
     ],
+    "status": "active",
     "since": "2026"
   },
   {
@@ -1650,6 +1710,7 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/entra/identity/authentication/concept-authentication-methods-manage"
       }
     ],
+    "status": "active",
     "since": "2021 (TAP GA) / 2024+ (abuse in CARTE/MCRP chains)"
   },
   {
@@ -1710,6 +1771,7 @@ const ENTRIES = [
         "url": "https://lots-project.com/"
       }
     ],
+    "status": "active",
     "since": "Chronic / industrialized 2022+"
   },
   {
@@ -1775,6 +1837,7 @@ const ENTRIES = [
         "url": "https://learn.microsoft.com/en-us/defender-office-365/safe-links-about"
       }
     ],
+    "status": "active",
     "since": "2021+ (chronic, under-cataloged)"
   },
   {
@@ -1839,6 +1902,10 @@ const ENTRIES = [
         "url": "https://github.com/dirkjanm/ROADtools/tree/master/winhello_assertion"
       }
     ],
+    "related": [
+      "foci-pivot"
+    ],
+    "status": "active",
     "since": "2025"
   }
 ];

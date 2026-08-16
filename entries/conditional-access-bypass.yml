@@ -2,6 +2,7 @@
 id: conditional-access-bypass
 name: Conditional Access Enumeration & Built-In Bypasses
 category: Identity Flow Abuse
+status: active
 vendors:
 - Microsoft Entra ID
 summary: Conditional Access is Entra ID's policy engine for enforcing MFA, device compliance, and location restrictions. Administrators routinely exclude specific users, apps, or roles from policies for compatibility reasons.
@@ -58,4 +59,7 @@ refs:
   url: https://entrascopes.com/
 - title: Maester — Entra ID security configuration validation
   url: https://maester.dev/
+related:
+- entra-device-code
+- cross-tenant-b2b-abuse
 since: "2025"
