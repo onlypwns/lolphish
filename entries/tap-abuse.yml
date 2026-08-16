@@ -71,4 +71,4 @@ refs:
   url: https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass
 - title: Microsoft — Authentication methods policy
   url: https://learn.microsoft.com/en-us/entra/identity/authentication/concept-authentication-methods-manage
-since: 2021 (TAP GA) / 2024+ (abuse in CARTE/MCRP chains)
+since: 2021 (TAP GA) / 2024+ (abuse in red-team/tenant-compromise chains)

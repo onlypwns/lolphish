@@ -19,7 +19,7 @@ variants:
 - Self-signed certificate added to owned app registration by a compromised user
 - Certificate thumbprint matching to identify and impersonate target SPNs
 kits:
-- New-AccessToken.ps1 (CARTE lab tooling)
+- New-AccessToken.ps1 (research tooling)
 - New-SignedJWT.ps1 (Key Vault remote signing)
 - roadtx (PRT/cert-based auth)
 - TokenTacticsV2 (token exchange)

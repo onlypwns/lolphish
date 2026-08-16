@@ -47,8 +47,6 @@ mitigations:
 - Never store SP certs, PFXs, or config secrets in storage accounts with anonymous/static-website access
 - Prefer user-delegation SAS over account-key SAS
 refs:
-- title: CARTE 2026-05 engagement notes — static-site SAS cert chain
-  url: https://github.com/
 - title: Microsoft — Grant limited access to Azure Storage resources using shared access signatures
   url: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
 since: "2026"

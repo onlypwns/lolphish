@@ -43,8 +43,6 @@ mitigations:
 - Delete short-lived deployment hosts immediately after use
 - Reduce Activity Log retention to the minimum required and send to a SIEM with strict access controls
 refs:
-- title: CARTE KC1–KC4 / MCRP — Activity Log claims leak notes
-  url: https://github.com/
 - title: Azure Activity Log overview
   url: https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/activity-log
 since: "2026"

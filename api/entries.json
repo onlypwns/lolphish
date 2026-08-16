@@ -116,10 +116,6 @@
       ],
       "refs": [
         {
-          "title": "CARTE KC1–KC4 / MCRP — Activity Log claims leak notes",
-          "url": "https://github.com/"
-        },
-        {
           "title": "Azure Activity Log overview",
           "url": "https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/activity-log"
         }
@@ -618,10 +614,6 @@
         "Enforce a Conditional Access policy targeting Guest or external users that requires MFA"
       ],
       "refs": [
-        {
-          "title": "CARTE KC1 Session 4 — Cross-tenant B2B abuse",
-          "url": "https://github.com/"
-        },
         {
           "title": "Microsoft — Cross-tenant access settings",
           "url": "https://learn.microsoft.com/en-us/entra/external-id/cross-tenant-access-overview"
@@ -1122,7 +1114,7 @@
         "Certificate thumbprint matching to identify and impersonate target SPNs"
       ],
       "kits": [
-        "New-AccessToken.ps1 (CARTE lab tooling)",
+        "New-AccessToken.ps1 (research tooling)",
         "New-SignedJWT.ps1 (Key Vault remote signing)",
         "roadtx (PRT/cert-based auth)",
         "TokenTacticsV2 (token exchange)"
@@ -1695,10 +1687,6 @@
       ],
       "refs": [
         {
-          "title": "CARTE 2026-05 engagement notes — static-site SAS cert chain",
-          "url": "https://github.com/"
-        },
-        {
           "title": "Microsoft — Grant limited access to Azure Storage resources using shared access signatures",
           "url": "https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview"
         }
@@ -1775,7 +1763,7 @@
         }
       ],
       "status": "active",
-      "since": "2021 (TAP GA) / 2024+ (abuse in CARTE/MCRP chains)"
+      "since": "2021 (TAP GA) / 2024+ (abuse in red-team/tenant-compromise chains)"
     },
     {
       "id": "trusted-mail-relays",

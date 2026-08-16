@@ -48,8 +48,6 @@ mitigations:
 - Disable self-service guest sign-up
 - Enforce a Conditional Access policy targeting Guest or external users that requires MFA
 refs:
-- title: CARTE KC1 Session 4 — Cross-tenant B2B abuse
-  url: https://github.com/
 - title: Microsoft — Cross-tenant access settings
   url: https://learn.microsoft.com/en-us/entra/external-id/cross-tenant-access-overview
 related:
