@@ -1,0 +1,61 @@
+# LOLPHISH entry — Conditional Access Enumeration & Bypass
+id: conditional-access-bypass
+name: Conditional Access Enumeration & Built-In Bypasses
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+summary: Conditional Access is Entra ID's policy engine for enforcing MFA, device compliance, and location restrictions. Administrators routinely exclude specific users, apps, or roles from policies for compatibility reasons.
+abuse: Attackers with `Policy.Read.All` enumerate every CAP to map exclusions, weak controls, and misconfigurations. Beyond misconfigurations, Microsoft has documented permanent resource exclusions (Intune Checkin, Windows Notification Service, MFA Connector, etc.) that always bypass CAP. Other by-design bypasses include the Device Registration Service for trusted-location evasion and scope-leakage on Graph `openid/offline_access` when any app is excluded from an "All cloud apps" policy. The attacker simply requests tokens for the excluded resource or scopes and walks around the policy.
+variants:
+- SPN enumeration of all CAPs via Microsoft Graph
+- Token requests to hardcoded CAP-excluded resource IDs
+- Scope-leakage abuse on Azure AD Graph / Microsoft Graph openid/offline_access scopes
+- Device Registration Service bypass of trusted-location policies
+- Device Management Service bypass of compliant-device requirements via Teams client
+kits:
+- Microsoft Graph PowerShell
+- ROADtools / roadtx
+- Maester (for defensive validation)
+surfaces:
+- graph.microsoft.com/v1.0/identity/conditionalAccess/policies
+- graph.windows.net (deprecated internal API)
+- login.microsoftonline.com token endpoint
+attack:
+- T1087.004
+- T1550.001
+detections:
+- SPN querying `identity/conditionalAccess/policies` in bulk
+- Token grants for permanently excluded resource IDs
+- ConditionalAccessStatus == notApplied on known excluded resources
+- Authentication to Device Registration Service or Device Management Service from untrusted networks
+detection_code:
+- lang: kql
+  query: |
+    let excludedResources = dynamic([
+      "26a4ae64-5862-427f-a9b0-044e62572a4f",
+      "04436913-cf0d-4d2a-9cc6-2ffe7f1d3d1c",
+      "0a5f63c0-b750-4f38-a71c-4fc0d58b89e2",
+      "1f5530b3-261a-47a9-b357-ded261e17918",
+      "c2ada927-a9e2-4564-aae2-70775a2fa0af",
+      "ff9ebd75-fe62-434a-a6ce-b3f0a8592eaf"
+    ]);
+    SigninLogs
+    | where AppId in (excludedResources)
+    | where ConditionalAccessStatus == "notApplied"
+    | summarize Count=count() by UserPrincipalName, AppDisplayName, AppId, IPAddress
+  description: Flags token requests to Microsoft resources that are permanently excluded from Conditional Access enforcement.
+  source: Fabian Bader / Dirk-jan Mollema / LOLPHISH T005
+mitigations:
+- Treat CAP exclusions as high-risk configuration changes requiring review
+- Stack controls with AND logic (Require MFA AND compliant device) instead of OR
+- Maintain a separate baseline "Require MFA for all users" policy
+- Use Maester or equivalent to validate CAP coverage gaps continuously
+- Monitor AuditLogs for modifications to conditional access policies
+refs:
+- title: Fabian Bader — Conditional Access bypasses
+  url: https://cloudbrothers.info/en/conditional-access-bypasses/
+- title: entrascopes — CA bypass ratings per app/resource
+  url: https://entrascopes.com/
+- title: Maester — Entra ID security configuration validation
+  url: https://maester.dev/
+since: "2025"

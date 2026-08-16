@@ -30,6 +30,16 @@ detections:
 - 'Org audit log: oauth_application.authorize and new user-code grants'
 - New OAuth authorizations with repo scope from unexpected geographies
 - Alert on device-flow events for orgs that never use CLI device login
+detection_code:
+- lang: kql
+  query: |
+    let githubDeviceEndpoints = dynamic(["github.com/login/device"]);
+    DeviceNetworkEvents
+    | where RemoteUrl has_any (githubDeviceEndpoints)
+    | summarize DeviceFlowVisits=count(), FirstSeen=min(Timestamp), LastSeen=max(Timestamp) by DeviceName, AccountName, RemoteUrl
+    | where DeviceFlowVisits > 3
+  description: Detects repeated visits to GitHub's device-flow page from endpoints/users with no normal CLI tooling use.
+  source: LOLPHISH
 mitigations:
 - 'Org policy: restrict third-party OAuth application access'
 - Require SSH/signing + SSO session controls for sensitive repos

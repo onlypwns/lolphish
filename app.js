@@ -15,9 +15,12 @@
   const catEl = $("#f-category");
   const venEl = $("#f-vendor");
   const countEl = $("#count");
+  const themeBtn = $("#theme-toggle");
+  const clearBtn = $("#clear-filters");
 
   let activeId = null;
   let state = { q: "", category: "", vendor: "" };
+  let searchTimer = null;
 
   /* ---- populate filter options ---- */
   STATS.categories.forEach(c => {
@@ -36,6 +39,55 @@
   $("#stat-entries").textContent = STATS.entries;
   $("#stat-variants").textContent = STATS.variants;
   $("#stat-kits").textContent = STATS.kits;
+  $("#stat-vendors").textContent = vendors.length;
+
+  /* ---- URL state helpers ---- */
+  function readUrlState() {
+    const params = new URLSearchParams(location.search);
+    state.q = (params.get("q") || "").toLowerCase();
+    state.category = params.get("cat") || "";
+    state.vendor = params.get("vendor") || "";
+    searchEl.value = state.q;
+    catEl.value = state.category;
+    venEl.value = state.vendor;
+  }
+
+  function writeUrlState() {
+    const params = new URLSearchParams();
+    if (state.q) params.set("q", state.q);
+    if (state.category) params.set("cat", state.category);
+    if (state.vendor) params.set("vendor", state.vendor);
+    const search = params.toString();
+    const url = location.pathname + (search ? "?" + search : "") + (activeId ? "#" + activeId : "");
+    history.replaceState(null, "", url);
+  }
+
+  function setHash(id) {
+    activeId = id;
+    writeUrlState();
+  }
+
+  /* ---- theme toggle ---- */
+  function initTheme() {
+    const saved = localStorage.getItem("lolphish-theme");
+    const systemLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+    const theme = saved || (systemLight ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", theme);
+    updateThemeIcon(theme);
+  }
+
+  function cycleTheme() {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("lolphish-theme", next);
+    updateThemeIcon(next);
+  }
+
+  function updateThemeIcon(theme) {
+    themeBtn.textContent = theme === "dark" ? "◐" : "◑";
+    themeBtn.setAttribute("title", theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+  }
 
   /* ---- filtering ---- */
   function matches(e) {
@@ -44,7 +96,7 @@
     if (state.q) {
       const codeHay = (e.detection_code || []).map(c => [c.lang, c.query, c.description].join(" ")).join(" ");
       const hay = [
-        e.name, e.category, e.vendors.join(" "), e.summary, e.abuse,
+        e.id, e.name, e.category, e.vendors.join(" "), e.summary, e.abuse,
         e.variants.join(" "), e.kits.join(" "), e.surfaces.join(" "),
         e.attack.join(" "), e.detections.join(" "), e.mitigations.join(" "), codeHay
       ].join(" ").toLowerCase();
@@ -54,18 +106,16 @@
   }
 
   /* ---- detail panel ---- */
-  function renderDetail(e) {
-    if (!e) {
-      detailEl.innerHTML =
-        '<div class="d-empty">SELECT AN ENTRY<span class="blink">_</span><br><br>' +
-        "Click any row to pin it here and expand its full record inline.</div>";
-      return;
-    }
-    detailEl.innerHTML = `
+  function detailHTML(e) {
+    const vendorChips = e.vendors.map(v =>
+      `<span class="v-chip" data-vendor="${esc(v)}">${esc(v)}</span>`).join("");
+    return `
       <div class="d-kicker">${esc(e.category)}</div>
       <div class="d-name">${esc(e.name)}</div>
       <div class="d-meta">
         <span class="cat-pill" style="color:${catColor[e.category]}">${esc(e.category)}</span>
+        ${vendorChips}
+        <a class="permalink" href="#${esc(e.id)}" title="Permalink to this entry">#${esc(e.id)}</a>
       </div>
       <div class="d-summary">${esc(e.summary)}</div>
       <div class="d-abuse">${esc(e.abuse.slice(0, 220))}${e.abuse.length > 220 ? "…" : ""}</div>
@@ -76,29 +126,44 @@
       </div>`;
   }
 
+  function renderDetail(e) {
+    if (!e) {
+      detailEl.innerHTML =
+        '<div class="d-empty">SELECT AN ENTRY<span class="blink">_</span><br><br>' +
+        "Click any row to pin it here and expand its full record inline.</div>";
+      return;
+    }
+    detailEl.innerHTML = detailHTML(e);
+  }
+
   /* ---- expandable body ---- */
   function bodyHTML(e) {
     const sect = (title, inner, wide) =>
       `<div class="sect${wide ? " wide" : ""}"><h4><span class="tick">#</span>${title}</h4>${inner}</div>`;
     const list = (arr) => `<ul class="ticklist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
     const tags = (arr, cls) => `<div class="tagrow">${arr.map(x => `<span class="tag ${cls}">${esc(x)}</span>`).join("")}</div>`;
-    const codeBlock = (snip) => {
+    const codeBlock = (snip, idx) => {
       const meta = [snip.lang.toUpperCase(), snip.source].filter(Boolean).join(" · ");
-      return `<div class="code-wrap">
-        <div class="code-meta">${esc(meta)}</div>
-        ${snip.description ? `<p class="code-desc">${esc(snip.description)}</p>` : ""}
+      const desc = snip.description ? `<p class="code-desc">${esc(snip.description)}</p>` : "";
+      return `<div class="code-wrap" data-idx="${idx}">
+        <div class="code-meta">
+          <span>${esc(meta)}</span>
+          <button class="copy-btn" type="button" aria-label="Copy query">copy</button>
+        </div>
+        ${desc}
         <pre><code>${esc(snip.query)}</code></pre>
       </div>`;
     };
 
     return `
       <div class="body-inner">
+        <div class="mobile-detail">${detailHTML(e)}</div>
         ${sect("Legitimate purpose", `<p>${esc(e.summary)}</p>`, true)}
         ${sect("Abuse primitive", `<p>${esc(e.abuse)}</p>`, true)}
         ${sect(`Variants (${e.variants.length})`, list(e.variants))}
         ${sect("Kits / Actors / Tooling", tags(e.kits, "kit"))}
         ${sect("Detection & hunting", list(e.detections))}
-        ${e.detection_code && e.detection_code.length ? sect(`Detection code (${e.detection_code.length})`, e.detection_code.map(codeBlock).join(""), true) : ""}
+        ${e.detection_code && e.detection_code.length ? sect(`Detection code (${e.detection_code.length})`, e.detection_code.map((c, i) => codeBlock(c, i)).join(""), true) : ""}
         ${sect("Structural mitigations", list(e.mitigations))}
         ${sect("Trust surfaces", tags(e.surfaces, "surface"))}
         ${sect("ATT&CK", list(e.attack))}
@@ -122,7 +187,7 @@
         <div class="row" role="button" tabindex="0">
           <span class="c-name"><span class="arrow">▸</span>${esc(e.name)}</span>
           <span class="c-cat"><span class="cat-pill" style="color:${catColor[e.category]}">${esc(shortCat(e.category))}</span></span>
-          <span class="c-vendor">${esc(e.vendors.slice(0, 2).join(", "))}${e.vendors.length > 2 ? " +" + (e.vendors.length - 2) : ""}</span>
+          <span class="c-vendor">${esc(e.vendors.join(", "))}</span>
           <span class="c-variants"><b>${e.variants.length}</b> var</span>
         </div>
         <div class="body">${e.id === activeId ? bodyHTML(e) : ""}</div>`;
@@ -146,6 +211,23 @@
              "Reputation Laundering": "Reputation Laundering" }[c] || c;
   }
 
+  /* ---- copy-to-clipboard for code blocks ---- */
+  tableEl.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".copy-btn");
+    if (!btn) return;
+    const wrap = btn.closest(".code-wrap");
+    const code = wrap.querySelector("code").textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      const original = btn.textContent;
+      btn.textContent = "copied";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = original; btn.classList.remove("copied"); }, 1500);
+    }).catch(() => {
+      btn.textContent = "failed";
+      setTimeout(() => { btn.textContent = "copy"; }, 1500);
+    });
+  });
+
   /* ---- interactions ---- */
   tableEl.addEventListener("click", (ev) => {
     const row = ev.target.closest(".row");
@@ -168,7 +250,7 @@
     if (activeId === id) {
       body.style.maxHeight = "0px";
       entryEl.classList.remove("active");
-      activeId = null;
+      setHash(null);
       renderDetail(null);
       setTimeout(() => { if (activeId !== id) body.innerHTML = ""; }, 360);
       return;
@@ -184,25 +266,78 @@
       setTimeout(() => { if (activeId !== pid) pb.innerHTML = ""; }, 360);
     }
 
-    activeId = id;
+    setHash(id);
     entryEl.classList.add("active");
     body.innerHTML = bodyHTML(e);
     requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + "px"; });
     renderDetail(e);
+
+    // on desktop, scroll selected row into view gently
+    if (window.innerWidth > 960) {
+      entryEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+
+  function applyFilters() {
+    render();
+    writeUrlState();
   }
 
   searchEl.addEventListener("input", () => {
-    state.q = searchEl.value.trim().toLowerCase();
-    render();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      state.q = searchEl.value.trim().toLowerCase();
+      applyFilters();
+    }, 150);
   });
-  catEl.addEventListener("change", () => { state.category = catEl.value; render(); });
-  venEl.addEventListener("change", () => { state.vendor = venEl.value; render(); });
+  catEl.addEventListener("change", () => { state.category = catEl.value; applyFilters(); });
+  venEl.addEventListener("change", () => { state.vendor = venEl.value; applyFilters(); });
+  themeBtn.addEventListener("click", cycleTheme);
+  clearBtn.addEventListener("click", () => {
+    state.q = ""; state.category = ""; state.vendor = "";
+    searchEl.value = ""; catEl.value = ""; venEl.value = "";
+    applyFilters();
+  });
+
+  /* ---- vendor chip click-to-filter ---- */
+  document.addEventListener("click", (ev) => {
+    const chip = ev.target.closest(".v-chip");
+    if (!chip) return;
+    const v = chip.dataset.vendor;
+    if (!v) return;
+    venEl.value = v;
+    state.vendor = v;
+    applyFilters();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, c =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
+  /* ---- init ---- */
+  initTheme();
+  readUrlState();
   render();
-  renderDetail(null);
+
+  // open hash target after first render
+  const hashId = (location.hash || "").replace(/^#/, "");
+  if (hashId) {
+    const target = ENTRIES.find(x => x.id === hashId);
+    if (target) {
+      const el = document.querySelector(`.entry[data-id="${CSS.escape(hashId)}"] .row`);
+      if (el) {
+        activeId = hashId; // setHash writes URL, but hash already matches
+        el.parentElement.classList.add("active");
+        const body = el.parentElement.querySelector(".body");
+        body.innerHTML = bodyHTML(target);
+        requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + "px"; });
+        renderDetail(target);
+        el.scrollIntoView({ behavior: "auto", block: "center" });
+      }
+    }
+  } else {
+    renderDetail(null);
+  }
 })();

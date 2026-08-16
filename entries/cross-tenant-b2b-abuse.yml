@@ -1,0 +1,54 @@
+# LOLPHISH entry — Cross-Tenant B2B Collaboration Abuse
+id: cross-tenant-b2b-abuse
+name: Cross-Tenant B2B Collaboration Abuse
+category: Identity Flow Abuse
+vendors:
+- Microsoft Entra ID
+summary: Microsoft Entra External Identities let users from one tenant access resources in another as B2B guests. Cross-tenant access settings can suppress the consent/MFA prompt for trusted partner tenants, streamlining legitimate collaboration.
+abuse: An attacker who controls a user in a trusted source tenant can switch directory into the target tenant without an additional MFA challenge when suppressed consent is configured. With "Member" access level for guests, the external user gains full directory read access and can enumerate users, groups, apps, and roles. Server-side invite variants abuse overprivileged multi-tenant app service principals to create Member-level B2B accounts from a mutable user-profile claim. The abuse weaponizes a trust relationship that defenders are explicitly told to configure.
+variants:
+- MFA-free directory switch via suppressed inbound CTAS
+- Self-service guest sign-up escalated to Member access level
+- Cross-tenant synchronization of compromised users
+- Server-side B2B invite via overprivileged web-app SP using mutable claims (department/jobTitle)
+- ROPC against target authority with home-tenant credentials post-invite
+kits:
+- Microsoft Graph PowerShell / Invoke-RestMethod
+- ROADtools / roadtx
+- Custom invite automation
+surfaces:
+- login.microsoftonline.com
+- graph.microsoft.com/v1.0/invitations
+- Entra ID "Switch Directory" UI
+- Cross-tenant access settings
+attack:
+- T1199
+- T1078.004
+detections:
+- SigninLogs with CrossTenantAccessType == B2BCollaboration and ConditionalAccessStatus == notApplied
+- AuditLogs OperationName "Invite external user" initiated by a service principal rather than a user
+- Guest UserType changed to Member
+- ROPC sign-ins from external IPs shortly after B2B invite redemption
+- Same IP/session triggering a web-app sign-in followed by a B2B invite
+detection_code:
+- lang: kql
+  query: |
+    SigninLogs
+    | where CrossTenantAccessType == "B2BCollaboration"
+    | where ConditionalAccessStatus == "notApplied"
+    | summarize Count=count(), IPs=make_set(IPAddress), Apps=make_set(AppDisplayName) by UserPrincipalName, HomeTenantId, ResourceTenantId
+    | where Count > 2
+  description: Surfaces cross-tenant B2B sign-ins where Conditional Access was not applied, a common result of suppressed-consent trust configurations.
+  source: LOLPHISH / threat-hunting-wiki T024
+mitigations:
+- Restrict inbound B2B to explicitly trusted tenants only
+- Never suppress MFA for external tenants unless absolutely required
+- Keep guest access level at Guest (not Member) by default
+- Disable self-service guest sign-up
+- Enforce a Conditional Access policy targeting Guest or external users that requires MFA
+refs:
+- title: CARTE KC1 Session 4 — Cross-tenant B2B abuse
+  url: https://github.com/
+- title: Microsoft — Cross-tenant access settings
+  url: https://learn.microsoft.com/en-us/entra/external-id/cross-tenant-access-overview
+since: "2024"

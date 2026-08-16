@@ -35,6 +35,18 @@ detections:
 - First-time sender analytics even on 'trusted' relay domains
 - 'Content/brand mismatch: relay sender + credential lure'
 - DMARC aggregate reports showing unowned sending sources
+detection_code:
+- lang: kql
+  query: |
+    let relayDomains = dynamic(["sendgrid.net", "amazonses.com", "mailgun.org", "postmarkapp.com", "brevo.com", "smtp2go.com"]);
+    EmailEvents
+    | where EmailDirection == "Inbound"
+    | where SenderMailFromDomain has_any (relayDomains)
+    | where DeliveryLocation == "Inbox/folder"
+    | summarize MailCount=count(), Recipients=dcount(RecipientEmailAddress), Subjects=make_set(Subject) by SenderMailFromAddress
+    | where MailCount > 10
+  description: Flags high-volume inbound mail from transactional relay domains — a common BEC/TOAD delivery pattern.
+  source: LOLPHISH
 mitigations:
 - Strict DMARC (p=reject) to shrink spoofing surface
 - 'Inbound policy: relay-origin mail still subject to full content inspection'

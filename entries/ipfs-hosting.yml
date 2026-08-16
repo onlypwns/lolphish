@@ -31,6 +31,17 @@ detections:
 - 'Egress: gateway domains + credential-form POST behavior'
 - Brand monitoring across gateway + CID combinations
 - 'Email SEG: URL rewriting that inspects CID-path links'
+detection_code:
+- lang: kql
+  query: |
+    let ipfsGateways = dynamic(["ipfs.io", "dweb.link", "cloudflare-ipfs.com", "gateway.pinata.cloud", "arweave.net"]);
+    DeviceNetworkEvents
+    | where RemoteUrl has_any (ipfsGateways)
+    | extend CID=extract(@"/ipfs/([a-zA-Z0-9]+)", 1, RemoteUrl)
+    | summarize CIDs=make_set(CID), Hits=count(), FirstSeen=min(Timestamp) by DeviceName, AccountName
+    | where array_length(CIDs) > 0
+  description: Lists IPFS gateway requests and extracts CIDs to enable CID-level hunting and gateway blocklists.
+  source: LOLPHISH
 mitigations:
 - Gateway restriction to sanctioned business gateways, others to isolation
 - Click-time protection on CID-pattern URLs

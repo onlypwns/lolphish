@@ -1,0 +1,53 @@
+# LOLPHISH entry — Azure Static Website SAS Lure
+id: static-site-sas-lure
+name: Azure Static Website SAS Lure
+category: Reputation Laundering
+vendors:
+- Microsoft Azure
+summary: Azure Storage static websites serve content from *.z##.web.core.windows.net — a Microsoft-owned domain with TLS, CDN routing, and a "computing/software" web-filter category. A static page referencing a blob via SAS token is a normal delivery pattern.
+abuse: An attacker publishes a lure or public asset on an Azure static website whose HTML references an image or asset via an overprivileged account-level SAS token (`srt=sco`, `sp=rwl`, multi-day expiry). A visitor who views the source can reuse that SAS against the storage account root to list every container, enumerate every blob, and often retrieve exposed Service Principal certificates, config files, or deployment secrets from sibling containers. The static website provides reputation laundering; the SAS provides the credential compromise path.
+variants:
+- Account-scope SAS embedded in HTML/CSS/JS of a static site
+- User-delegation SAS misconfigured with list/write permissions
+- Sibling containers named certificate/, certs/, deploy/, terraform/ storing SP PFXs
+- Static site used only as a redirector to the SAS-bearing asset elsewhere
+kits:
+- Azure Storage REST API / Invoke-WebRequest
+- ROADtools / roadtx
+- Custom enumeration scripts
+surfaces:
+- '*.z##.web.core.windows.net'
+- '*.blob.core.windows.net'
+- Azure Static Websites
+attack:
+- T1190
+- T1552.001
+- T1078.004
+detections:
+- 'StorageBlobLogs: ListContainers operation from external IP on a static-site storage account'
+- SAS issuance events with `srt=sco` and `sp` containing `l`
+- Sharp increase in GetBlob operations against certificate/config blobs from a single IP
+- Service Principal sign-in with cert auth shortly after a Certificate* blob read
+detection_code:
+- lang: kql
+  query: |
+    StorageBlobLogs
+    | where OperationName == "ListContainers"
+    | where AuthenticationType == "SAS"
+    | where CallerIpAddress !in (dynamic(["<corp-nat>"]))
+    | summarize ContainerLists=count(), IPs=make_set(CallerIpAddress) by AccountName
+    | where ContainerLists > 3
+  description: Flags external SAS-authenticated container-list operations against storage accounts, a signature of account-scope SAS abuse.
+  source: LOLPHISH / threat-hunting-wiki T027
+mitigations:
+- Issue object-scope SAS only (`srt=o`) for single-blob delivery
+- Use read-only permissions (`sp=r`) and short TTLs (hours, not days)
+- Add `sip=` IP restrictions where clients are predictable
+- Never store SP certs, PFXs, or config secrets in storage accounts with anonymous/static-website access
+- Prefer user-delegation SAS over account-key SAS
+refs:
+- title: CARTE 2026-05 engagement notes — static-site SAS cert chain
+  url: https://github.com/
+- title: Microsoft — Grant limited access to Azure Storage resources using shared access signatures
+  url: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
+since: "2026"

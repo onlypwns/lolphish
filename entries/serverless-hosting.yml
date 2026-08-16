@@ -45,6 +45,17 @@ detections:
 - 'Passive DNS: brand-keyword subdomains on platform domains'
 - Certificate Transparency monitoring for lookalike names
 - 'Egress analytics: rare subdomains + form POSTs + identity-domain referrers'
+detection_code:
+- lang: kql
+  query: |
+    let platformDomains = dynamic(["workers.dev", "pages.dev", "vercel.app", "netlify.app", "web.app", "firebaseapp.com", "azurestaticapps.net", "github.io", "onrender.com", "up.railway.app"]);
+    DeviceNetworkEvents
+    | where RemoteUrl endswith_any (platformDomains)
+    | where RemoteUrl contains "login" or RemoteUrl contains "signin" or RemoteUrl contains "auth" or RemoteUrl contains "verify"
+    | summarize Hits=count(), FirstSeen=min(Timestamp), Users=make_set(AccountName) by RemoteUrl
+    | where Hits > 5
+  description: Hunts for authentication-themed pages hosted on JAMstack/serverless platforms that are commonly abused for phishing.
+  source: LOLPHISH
 mitigations:
 - Subdomain-level (not platform-level) blocking with rapid feedback loops
 - URL isolation/remote browsing for uncategorized platform subdomains

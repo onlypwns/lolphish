@@ -34,6 +34,23 @@ detections:
 - 'Web proxy: design-tool pageview → identity-domain navigation within seconds'
 - New-domain-relationship alerts on canva.site subdomains
 - Passive DNS / certificate transparency on design subdomains with brand keywords
+detection_code:
+- lang: kql
+  query: |
+    let designDomains = dynamic(["canva.com", "my.canva.site", "figma.com"]);
+    let identityDomains = dynamic(["login.microsoftonline.com", "accounts.google.com", "okta.com", "login.okta.com"]);
+    DeviceNetworkEvents
+    | where RemoteUrl has_any (designDomains)
+    | summarize DesignClick=min(Timestamp) by DeviceName, AccountName, RemoteUrl
+    | join kind=inner (
+        DeviceNetworkEvents
+        | where RemoteUrl has_any (identityDomains)
+        | summarize AuthClick=min(Timestamp) by DeviceName, AccountName
+    ) on DeviceName, AccountName
+    | where AuthClick between (DesignClick .. datetime_add('minute', 5, DesignClick))
+    | project DeviceName, AccountName, DesignClick, AuthClick, DesignUrl=RemoteUrl
+  description: Correlates a design-platform pageview with an identity-provider navigation within 5 minutes on the same endpoint/user.
+  source: LOLPHISH
 mitigations:
 - URL isolation for design-platform links from email
 - Behavioral correlation controls (design click + auth event = alert)

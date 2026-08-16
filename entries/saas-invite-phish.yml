@@ -37,6 +37,18 @@ detections:
 - 'Click telemetry: SaaS notification → off-platform credential domain within N seconds'
 - New-sender relationship analytics on notification service accounts
 - Doc-content scanning where API access exists (CASB)
+detection_code:
+- lang: kql
+  query: |
+    let saasNotifyDomains = dynamic(["docusign.net", "sharepointonline.com", "dropbox.com", "docs.google.com", "adobesign.com"]);
+    EmailEvents
+    | where EmailDirection == "Inbound"
+    | where SenderMailFromDomain has_any (saasNotifyDomains)
+    | where Subject contains "shared" or Subject contains "signature" or Subject contains "review" or Subject contains "comment"
+    | summarize Count=count(), FirstSeen=min(Timestamp) by RecipientEmailAddress, SenderFromAddress, Subject
+    | where Count > 3
+  description: Detects repeated SaaS notification/invite emails that may carry malicious links or OAuth lures inside documents.
+  source: LOLPHISH
 mitigations:
 - Click-time URL protection (rewrites that re-scan at click, not just delivery)
 - CASB/SSPM controls on inbound sharing from unknown tenants

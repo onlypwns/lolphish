@@ -1,10 +1,62 @@
 {
-  "version": "0.2",
+  "version": "0.3",
   "generated_by": "lolphish build.py",
   "stats": {
-    "entries": 22,
-    "variants": 95,
-    "kits": 71,
+    "entries": 28,
+    "variants": 122,
+    "kits": 89,
+    "vendors": [
+      "AWS (IAM Identity Center)",
+      "Adobe Acrobat Sign",
+      "Adobe Express",
+      "Amazon SES",
+      "Any SEG",
+      "Any email + mobile target",
+      "Any web SSO",
+      "Apple",
+      "Azure Static Web Apps",
+      "Bing",
+      "Brevo",
+      "Canva",
+      "Cloudflare Workers/Pages",
+      "Cross-platform (browser)",
+      "DocuSign",
+      "Dropbox",
+      "Figma",
+      "Filecoin/Arweave ecosystem",
+      "Firebase",
+      "GitHub",
+      "GitHub Pages",
+      "Google",
+      "Google Calendar",
+      "Google Drive",
+      "Google Workspace",
+      "IPFS gateways",
+      "LinkedIn",
+      "Lucid",
+      "Mailgun",
+      "Microsoft 365",
+      "Microsoft 365 / Exchange Online",
+      "Microsoft Azure",
+      "Microsoft Entra ID",
+      "Microsoft Exchange Online",
+      "Microsoft Exchange Server",
+      "Microsoft Safe Links",
+      "Microsoft Windows",
+      "Netlify",
+      "Okta",
+      "Postmark",
+      "Proofpoint URL Defense",
+      "Railway",
+      "Render",
+      "SMTP2GO",
+      "Salesforce",
+      "SendGrid",
+      "SharePoint/OneDrive",
+      "Vercel",
+      "Windows",
+      "macOS"
+    ],
     "categories": [
       "Identity Flow Abuse",
       "Reputation Laundering",
@@ -13,6 +65,67 @@
     ]
   },
   "entries": [
+    {
+      "id": "activity-log-claims-leak",
+      "name": "Azure Activity Log Managed-Identity Claims Leak",
+      "category": "Identity Flow Abuse",
+      "vendors": [
+        "Microsoft Azure"
+      ],
+      "summary": "Every call to Azure Resource Manager is written to the Activity Log with the full JWT claim payload of the calling identity. For Managed Identities, the claims include both the MI principal ID and the resource ID of the host that minted the token.",
+      "abuse": "Any principal with Reader on a resource can read that resource's Activity Log and extract `xms_mirid` (the Managed Identity) and `xms_az_rid` (the host resource) from every historical ARM call. This turns a read-only audit log into a privilege-escalation map — attackers discover exactly which VM, Function App, Container Instance, or Logic App hosts a privileged MI without needing RBAC on the host itself. The leak is a feature of the logging format, not a misconfiguration.",
+      "variants": [
+        "Subscription-scope Activity Log sweep to enumerate all hosts touched by a privileged MI",
+        "Cross-resource-group pivoting via shared MI claim payloads",
+        "Targeting deployment-script Container Instances that are deleted post-run but whose logs persist 90 days",
+        "Combining with `wids` claim to prioritize hosts whose MIs hold directory roles"
+      ],
+      "kits": [
+        "ROADtools / roadtx",
+        "Az PowerShell (Get-AzLog)",
+        "Custom ARM REST callers"
+      ],
+      "surfaces": [
+        "management.azure.com",
+        "Azure Activity Log (microsoft.insights/eventtypes/management)",
+        "Get-AzLog / Invoke-AzRestMethod"
+      ],
+      "attack": [
+        "T1538",
+        "T1552.005",
+        "T1078.004"
+      ],
+      "detections": [
+        "AzureActivity: List management events queries from non-operations principals",
+        "Repeated `eventtypes/management/values` reads across many resources by the same caller",
+        "External/guest UPN reading subscription-root Activity Log"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "AzureActivity\n| where OperationName == \"List management events\" or OperationNameValue == \"MICROSOFT.INSIGHTS/EVENTTYPES/MANAGEMENT/VALUES/READ\"\n| summarize ReadCount=count(), Resources=make_set(Resource), IPs=make_set(CallerIpAddress) by Caller, CallerIpAddress\n| where ReadCount > 10\n",
+          "description": "Detects principals performing many Activity Log list operations, which may indicate claims-leak reconnaissance.",
+          "source": "LOLPHISH / threat-hunting-wiki T026"
+        }
+      ],
+      "mitigations": [
+        "Grant Reader at the narrowest scope; avoid subscription-level Reader for non-ops accounts",
+        "Prefer system-assigned MIs over user-assigned MIs where possible",
+        "Delete short-lived deployment hosts immediately after use",
+        "Reduce Activity Log retention to the minimum required and send to a SIEM with strict access controls"
+      ],
+      "refs": [
+        {
+          "title": "CARTE KC1–KC4 / MCRP — Activity Log claims leak notes",
+          "url": "https://github.com/"
+        },
+        {
+          "title": "Azure Activity Log overview",
+          "url": "https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/activity-log"
+        }
+      ],
+      "since": "2026"
+    },
     {
       "id": "aitm-reverse-proxy",
       "name": "AiTM Reverse-Proxy Phishing",
@@ -202,6 +315,14 @@
         "Endpoint: calendar events from external organizers with link payloads",
         "User-report pipeline tuned for calendar lures"
       ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "EmailEvents\n| where EmailDirection == \"Inbound\"\n| where Subject contains \"invitation\" or Subject contains \"invite\" or Subject contains \"calendar\"\n| join kind=inner EmailAttachmentInfo on NetworkMessageId\n| where FileType == \"ics\"\n| where SenderFromDomain !contains RecipientDomain\n| summarize InviteCount=count() by RecipientEmailAddress, SenderFromAddress, Subject\n| where InviteCount > 2\n",
+          "description": "Flags inbound .ics calendar invites from external senders hitting the same recipient repeatedly.",
+          "source": "LOLPHISH"
+        }
+      ],
       "mitigations": [
         "Google Calendar: 'only add invitations I respond to' / disable auto-add from unknown senders",
         "SEG coverage for invite-body URLs",
@@ -251,6 +372,14 @@
         "Web proxy: design-tool pageview → identity-domain navigation within seconds",
         "New-domain-relationship alerts on canva.site subdomains",
         "Passive DNS / certificate transparency on design subdomains with brand keywords"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "let designDomains = dynamic([\"canva.com\", \"my.canva.site\", \"figma.com\"]);\nlet identityDomains = dynamic([\"login.microsoftonline.com\", \"accounts.google.com\", \"okta.com\", \"login.okta.com\"]);\nDeviceNetworkEvents\n| where RemoteUrl has_any (designDomains)\n| summarize DesignClick=min(Timestamp) by DeviceName, AccountName, RemoteUrl\n| join kind=inner (\n    DeviceNetworkEvents\n    | where RemoteUrl has_any (identityDomains)\n    | summarize AuthClick=min(Timestamp) by DeviceName, AccountName\n) on DeviceName, AccountName\n| where AuthClick between (DesignClick .. datetime_add('minute', 5, DesignClick))\n| project DeviceName, AccountName, DesignClick, AuthClick, DesignUrl=RemoteUrl\n",
+          "description": "Correlates a design-platform pageview with an identity-provider navigation within 5 minutes on the same endpoint/user.",
+          "source": "LOLPHISH"
+        }
       ],
       "mitigations": [
         "URL isolation for design-platform links from email",
@@ -352,6 +481,138 @@
         }
       ],
       "since": "2024 (named by Proofpoint) / 2025-26 (variant explosion)"
+    },
+    {
+      "id": "conditional-access-bypass",
+      "name": "Conditional Access Enumeration & Built-In Bypasses",
+      "category": "Identity Flow Abuse",
+      "vendors": [
+        "Microsoft Entra ID"
+      ],
+      "summary": "Conditional Access is Entra ID's policy engine for enforcing MFA, device compliance, and location restrictions. Administrators routinely exclude specific users, apps, or roles from policies for compatibility reasons.",
+      "abuse": "Attackers with `Policy.Read.All` enumerate every CAP to map exclusions, weak controls, and misconfigurations. Beyond misconfigurations, Microsoft has documented permanent resource exclusions (Intune Checkin, Windows Notification Service, MFA Connector, etc.) that always bypass CAP. Other by-design bypasses include the Device Registration Service for trusted-location evasion and scope-leakage on Graph `openid/offline_access` when any app is excluded from an \"All cloud apps\" policy. The attacker simply requests tokens for the excluded resource or scopes and walks around the policy.",
+      "variants": [
+        "SPN enumeration of all CAPs via Microsoft Graph",
+        "Token requests to hardcoded CAP-excluded resource IDs",
+        "Scope-leakage abuse on Azure AD Graph / Microsoft Graph openid/offline_access scopes",
+        "Device Registration Service bypass of trusted-location policies",
+        "Device Management Service bypass of compliant-device requirements via Teams client"
+      ],
+      "kits": [
+        "Microsoft Graph PowerShell",
+        "ROADtools / roadtx",
+        "Maester (for defensive validation)"
+      ],
+      "surfaces": [
+        "graph.microsoft.com/v1.0/identity/conditionalAccess/policies",
+        "graph.windows.net (deprecated internal API)",
+        "login.microsoftonline.com token endpoint"
+      ],
+      "attack": [
+        "T1087.004",
+        "T1550.001"
+      ],
+      "detections": [
+        "SPN querying `identity/conditionalAccess/policies` in bulk",
+        "Token grants for permanently excluded resource IDs",
+        "ConditionalAccessStatus == notApplied on known excluded resources",
+        "Authentication to Device Registration Service or Device Management Service from untrusted networks"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "let excludedResources = dynamic([\n  \"26a4ae64-5862-427f-a9b0-044e62572a4f\",\n  \"04436913-cf0d-4d2a-9cc6-2ffe7f1d3d1c\",\n  \"0a5f63c0-b750-4f38-a71c-4fc0d58b89e2\",\n  \"1f5530b3-261a-47a9-b357-ded261e17918\",\n  \"c2ada927-a9e2-4564-aae2-70775a2fa0af\",\n  \"ff9ebd75-fe62-434a-a6ce-b3f0a8592eaf\"\n]);\nSigninLogs\n| where AppId in (excludedResources)\n| where ConditionalAccessStatus == \"notApplied\"\n| summarize Count=count() by UserPrincipalName, AppDisplayName, AppId, IPAddress\n",
+          "description": "Flags token requests to Microsoft resources that are permanently excluded from Conditional Access enforcement.",
+          "source": "Fabian Bader / Dirk-jan Mollema / LOLPHISH T005"
+        }
+      ],
+      "mitigations": [
+        "Treat CAP exclusions as high-risk configuration changes requiring review",
+        "Stack controls with AND logic (Require MFA AND compliant device) instead of OR",
+        "Maintain a separate baseline \"Require MFA for all users\" policy",
+        "Use Maester or equivalent to validate CAP coverage gaps continuously",
+        "Monitor AuditLogs for modifications to conditional access policies"
+      ],
+      "refs": [
+        {
+          "title": "Fabian Bader — Conditional Access bypasses",
+          "url": "https://cloudbrothers.info/en/conditional-access-bypasses/"
+        },
+        {
+          "title": "entrascopes — CA bypass ratings per app/resource",
+          "url": "https://entrascopes.com/"
+        },
+        {
+          "title": "Maester — Entra ID security configuration validation",
+          "url": "https://maester.dev/"
+        }
+      ],
+      "since": "2025"
+    },
+    {
+      "id": "cross-tenant-b2b-abuse",
+      "name": "Cross-Tenant B2B Collaboration Abuse",
+      "category": "Identity Flow Abuse",
+      "vendors": [
+        "Microsoft Entra ID"
+      ],
+      "summary": "Microsoft Entra External Identities let users from one tenant access resources in another as B2B guests. Cross-tenant access settings can suppress the consent/MFA prompt for trusted partner tenants, streamlining legitimate collaboration.",
+      "abuse": "An attacker who controls a user in a trusted source tenant can switch directory into the target tenant without an additional MFA challenge when suppressed consent is configured. With \"Member\" access level for guests, the external user gains full directory read access and can enumerate users, groups, apps, and roles. Server-side invite variants abuse overprivileged multi-tenant app service principals to create Member-level B2B accounts from a mutable user-profile claim. The abuse weaponizes a trust relationship that defenders are explicitly told to configure.",
+      "variants": [
+        "MFA-free directory switch via suppressed inbound CTAS",
+        "Self-service guest sign-up escalated to Member access level",
+        "Cross-tenant synchronization of compromised users",
+        "Server-side B2B invite via overprivileged web-app SP using mutable claims (department/jobTitle)",
+        "ROPC against target authority with home-tenant credentials post-invite"
+      ],
+      "kits": [
+        "Microsoft Graph PowerShell / Invoke-RestMethod",
+        "ROADtools / roadtx",
+        "Custom invite automation"
+      ],
+      "surfaces": [
+        "login.microsoftonline.com",
+        "graph.microsoft.com/v1.0/invitations",
+        "Entra ID \"Switch Directory\" UI",
+        "Cross-tenant access settings"
+      ],
+      "attack": [
+        "T1199",
+        "T1078.004"
+      ],
+      "detections": [
+        "SigninLogs with CrossTenantAccessType == B2BCollaboration and ConditionalAccessStatus == notApplied",
+        "AuditLogs OperationName \"Invite external user\" initiated by a service principal rather than a user",
+        "Guest UserType changed to Member",
+        "ROPC sign-ins from external IPs shortly after B2B invite redemption",
+        "Same IP/session triggering a web-app sign-in followed by a B2B invite"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "SigninLogs\n| where CrossTenantAccessType == \"B2BCollaboration\"\n| where ConditionalAccessStatus == \"notApplied\"\n| summarize Count=count(), IPs=make_set(IPAddress), Apps=make_set(AppDisplayName) by UserPrincipalName, HomeTenantId, ResourceTenantId\n| where Count > 2\n",
+          "description": "Surfaces cross-tenant B2B sign-ins where Conditional Access was not applied, a common result of suppressed-consent trust configurations.",
+          "source": "LOLPHISH / threat-hunting-wiki T024"
+        }
+      ],
+      "mitigations": [
+        "Restrict inbound B2B to explicitly trusted tenants only",
+        "Never suppress MFA for external tenants unless absolutely required",
+        "Keep guest access level at Guest (not Member) by default",
+        "Disable self-service guest sign-up",
+        "Enforce a Conditional Access policy targeting Guest or external users that requires MFA"
+      ],
+      "refs": [
+        {
+          "title": "CARTE KC1 Session 4 — Cross-tenant B2B abuse",
+          "url": "https://github.com/"
+        },
+        {
+          "title": "Microsoft — Cross-tenant access settings",
+          "url": "https://learn.microsoft.com/en-us/entra/external-id/cross-tenant-access-overview"
+        }
+      ],
+      "since": "2024"
     },
     {
       "id": "entra-device-code",
@@ -532,6 +793,14 @@
         "Non-interactive sign-in volume spikes per client ID",
         "Alert on known-abused first-party client IDs appearing from new IP ranges per user"
       ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "AADNonInteractiveUserSignInLogs\n| where AuthenticationProtocol == \"ROPC\"\n| summarize Count=count(), IPs=make_set(IPAddress), Apps=make_set(AppDisplayName), ClientIds=make_set(ClientId) by UserPrincipalName\n| where Count > 5\n| extend IPCount=array_length(IPs)\n| where IPCount > 2\n",
+          "description": "Surfaces users with multiple ROPC non-interactive sign-ins across multiple IPs/apps, a pattern common in first-party client-ID abuse.",
+          "source": "LOLPHISH"
+        }
+      ],
       "mitigations": [
         "Block legacy auth org-wide and scope CA to 'all cloud apps' (no exclusions)",
         "CA: require compliant/hybrid-joined device for public-client flows",
@@ -548,6 +817,74 @@
         }
       ],
       "since": "2019 (research) / ongoing in the wild"
+    },
+    {
+      "id": "exchange-hybrid-s2s-impersonation",
+      "name": "Exchange Hybrid S2S Actor Token Impersonation",
+      "category": "Identity Flow Abuse",
+      "vendors": [
+        "Microsoft Exchange Online",
+        "Microsoft Exchange Server"
+      ],
+      "summary": "Exchange hybrid deployments use an OAuth2 certificate credential shared between on-premises Exchange Server and the Exchange Online service principal. This S2S trust is the legitimate plumbing of hybrid mailbox coexistence.",
+      "abuse": "An attacker with on-prem Exchange Server access extracts the hybrid certificate and uses it to request OAuth2 client-credentials tokens against the Exchange Online service principal. The resulting actor tokens can impersonate any user in the tenant for Exchange Online and SharePoint Online without MFA, Conditional Access, sign-in logs, or revocation. CVE-2025-53786 (disclosed at DEF CON 33, August 2025) documents this path. The abuse is architectural: the same certificate trusted for hybrid sync becomes a universal impersonation key.\n",
+      "variants": [
+        "On-prem Exchange cert extraction via local admin / DPAPI",
+        "Actor token issuance via Access Control Service (ACS)",
+        "Mailbox read/write impersonation through Exchange Online",
+        "SharePoint Online / OneDrive impersonation using the same token",
+        "graph.windows.net impersonation (patched August 2025)"
+      ],
+      "kits": [
+        "adconnectdump",
+        "roadtx",
+        "impacket / Rubeus"
+      ],
+      "surfaces": [
+        "on-premises Exchange Server certificate store",
+        "accounts.accesscontrol.windows.net",
+        "Exchange Online service principal",
+        "graph.windows.net (patched vector)"
+      ],
+      "attack": [
+        "T1550.001",
+        "T1134"
+      ],
+      "detections": [
+        "AuditLogs events where \"Office 365 Exchange Online\" appears as both initiating service and user context",
+        "Unexpected cross-mailbox access attributed to Exchange Online service",
+        "SharePoint operations from Exchange Online outside known migration/sync workflows",
+        "New certificate credentials on the Exchange Online service principal"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "AuditLogs\n| where OperationName !contains \"group\"\n| where OperationName != \"Set directory feature on tenant\"\n| where InitiatedBy has_all (\"Office 365 Exchange Online\", \"user\")\n| where InitiatedBy.user.displayName == \"Office 365 Exchange Online\"\n| summarize Count=count() by OperationName, TargetResources\n",
+          "description": "Detects audit events where Exchange Online appears to act as a user, a signature of S2S actor-token impersonation.",
+          "source": "Dirk-jan Mollema / LOLPHISH T028"
+        }
+      ],
+      "mitigations": [
+        "Split Exchange on-prem and Exchange Online service principals (Microsoft-required by October 2025)",
+        "Restrict Exchange on-prem outbound network to expected ACS infrastructure",
+        "Audit and remove unrecognized certificate credentials on the Exchange Online service principal",
+        "Monitor AuditLogs for Exchange Online actor patterns until SP split is complete"
+      ],
+      "refs": [
+        {
+          "title": "Dirk-jan Mollema — Borrowing Windows Hello keys / DEF CON 33",
+          "url": "https://dirkjanm.io/"
+        },
+        {
+          "title": "Microsoft — Exchange Server security changes for hybrid deployments",
+          "url": "https://techcommunity.microsoft.com/blog/exchange/exchange-server-security-changes-for-hybrid-deployments/4396833"
+        },
+        {
+          "title": "CVE-2025-53786 — MSRC advisory",
+          "url": "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2025-53786"
+        }
+      ],
+      "since": "2025"
     },
     {
       "id": "foci-pivot",
@@ -644,6 +981,14 @@
         "New OAuth authorizations with repo scope from unexpected geographies",
         "Alert on device-flow events for orgs that never use CLI device login"
       ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "let githubDeviceEndpoints = dynamic([\"github.com/login/device\"]);\nDeviceNetworkEvents\n| where RemoteUrl has_any (githubDeviceEndpoints)\n| summarize DeviceFlowVisits=count(), FirstSeen=min(Timestamp), LastSeen=max(Timestamp) by DeviceName, AccountName, RemoteUrl\n| where DeviceFlowVisits > 3\n",
+          "description": "Detects repeated visits to GitHub's device-flow page from endpoints/users with no normal CLI tooling use.",
+          "source": "LOLPHISH"
+        }
+      ],
       "mitigations": [
         "Org policy: restrict third-party OAuth application access",
         "Require SSH/signing + SSO session controls for sensitive repos",
@@ -696,6 +1041,14 @@
         "Egress: gateway domains + credential-form POST behavior",
         "Brand monitoring across gateway + CID combinations",
         "Email SEG: URL rewriting that inspects CID-path links"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "let ipfsGateways = dynamic([\"ipfs.io\", \"dweb.link\", \"cloudflare-ipfs.com\", \"gateway.pinata.cloud\", \"arweave.net\"]);\nDeviceNetworkEvents\n| where RemoteUrl has_any (ipfsGateways)\n| extend CID=extract(@\"/ipfs/([a-zA-Z0-9]+)\", 1, RemoteUrl)\n| summarize CIDs=make_set(CID), Hits=count(), FirstSeen=min(Timestamp) by DeviceName, AccountName\n| where array_length(CIDs) > 0\n",
+          "description": "Lists IPFS gateway requests and extracts CIDs to enable CID-level hunting and gateway blocklists.",
+          "source": "LOLPHISH"
+        }
       ],
       "mitigations": [
         "Gateway restriction to sanctioned business gateways, others to isolation",
@@ -810,6 +1163,14 @@
         "Inbound mail where internal sender resolves only via smart-host path (no auth results)",
         "Alert on RejectDirectSend=false tenants receiving unauthenticated internal-claimed mail",
         "New-tenant onmicrosoft senders with zero prior relationship"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "EmailEvents\n| where EmailDirection == \"Inbound\"\n| where SenderMailFromDomain endswith \".onmicrosoft.com\"\n| where DeliveryLocation == \"Inbox/folder\"\n| summarize Count=count(), FirstSeen=min(Timestamp), Subjects=make_set(Subject) by RecipientEmailAddress, SenderFromAddress, SenderMailFromDomain\n| where Count > 2\n",
+          "description": "Finds inbound mail delivered from *.onmicrosoft.com sender domains — common in burner-tenant Direct Send abuse.",
+          "source": "LOLPHISH"
+        }
       ],
       "mitigations": [
         "Set RejectDirectSend=true (Exchange Online org setting)",
@@ -995,6 +1356,14 @@
         "Sign-ins from mobile carrier ASNs post-delivery",
         "Report-phish workflows tuned to image-only mails"
       ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "EmailEvents\n| where EmailDirection == \"Inbound\"\n| where AttachmentCount > 0 and BodyLength < 300\n| join kind=inner EmailAttachmentInfo on NetworkMessageId\n| where FileType in (\"png\", \"jpg\", \"jpeg\", \"pdf\")\n| summarize ImageOnlyMails=count() by RecipientEmailAddress, SenderFromAddress\n| where ImageOnlyMails > 2\n",
+          "description": "Identifies image-heavy, text-light inbound email patterns that commonly carry quishing payloads.",
+          "source": "LOLPHISH"
+        }
+      ],
       "mitigations": [
         "SEG QR decoding + click-time protection",
         "Block/banner image-only emails from external senders",
@@ -1048,6 +1417,14 @@
         "Click telemetry: SaaS notification → off-platform credential domain within N seconds",
         "New-sender relationship analytics on notification service accounts",
         "Doc-content scanning where API access exists (CASB)"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "let saasNotifyDomains = dynamic([\"docusign.net\", \"sharepointonline.com\", \"dropbox.com\", \"docs.google.com\", \"adobesign.com\"]);\nEmailEvents\n| where EmailDirection == \"Inbound\"\n| where SenderMailFromDomain has_any (saasNotifyDomains)\n| where Subject contains \"shared\" or Subject contains \"signature\" or Subject contains \"review\" or Subject contains \"comment\"\n| summarize Count=count(), FirstSeen=min(Timestamp) by RecipientEmailAddress, SenderFromAddress, Subject\n| where Count > 3\n",
+          "description": "Detects repeated SaaS notification/invite emails that may carry malicious links or OAuth lures inside documents.",
+          "source": "LOLPHISH"
+        }
       ],
       "mitigations": [
         "Click-time URL protection (rewrites that re-scan at click, not just delivery)",
@@ -1114,6 +1491,14 @@
         "Passive DNS: brand-keyword subdomains on platform domains",
         "Certificate Transparency monitoring for lookalike names",
         "Egress analytics: rare subdomains + form POSTs + identity-domain referrers"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "let platformDomains = dynamic([\"workers.dev\", \"pages.dev\", \"vercel.app\", \"netlify.app\", \"web.app\", \"firebaseapp.com\", \"azurestaticapps.net\", \"github.io\", \"onrender.com\", \"up.railway.app\"]);\nDeviceNetworkEvents\n| where RemoteUrl endswith_any (platformDomains)\n| where RemoteUrl contains \"login\" or RemoteUrl contains \"signin\" or RemoteUrl contains \"auth\" or RemoteUrl contains \"verify\"\n| summarize Hits=count(), FirstSeen=min(Timestamp), Users=make_set(AccountName) by RemoteUrl\n| where Hits > 5\n",
+          "description": "Hunts for authentication-themed pages hosted on JAMstack/serverless platforms that are commonly abused for phishing.",
+          "source": "LOLPHISH"
+        }
       ],
       "mitigations": [
         "Subdomain-level (not platform-level) blocking with rapid feedback loops",
@@ -1197,6 +1582,69 @@
         }
       ],
       "since": "Chronic / industrialized in BEC 2022+"
+    },
+    {
+      "id": "static-site-sas-lure",
+      "name": "Azure Static Website SAS Lure",
+      "category": "Reputation Laundering",
+      "vendors": [
+        "Microsoft Azure"
+      ],
+      "summary": "Azure Storage static websites serve content from *.z##.web.core.windows.net — a Microsoft-owned domain with TLS, CDN routing, and a \"computing/software\" web-filter category. A static page referencing a blob via SAS token is a normal delivery pattern.",
+      "abuse": "An attacker publishes a lure or public asset on an Azure static website whose HTML references an image or asset via an overprivileged account-level SAS token (`srt=sco`, `sp=rwl`, multi-day expiry). A visitor who views the source can reuse that SAS against the storage account root to list every container, enumerate every blob, and often retrieve exposed Service Principal certificates, config files, or deployment secrets from sibling containers. The static website provides reputation laundering; the SAS provides the credential compromise path.",
+      "variants": [
+        "Account-scope SAS embedded in HTML/CSS/JS of a static site",
+        "User-delegation SAS misconfigured with list/write permissions",
+        "Sibling containers named certificate/, certs/, deploy/, terraform/ storing SP PFXs",
+        "Static site used only as a redirector to the SAS-bearing asset elsewhere"
+      ],
+      "kits": [
+        "Azure Storage REST API / Invoke-WebRequest",
+        "ROADtools / roadtx",
+        "Custom enumeration scripts"
+      ],
+      "surfaces": [
+        "*.z##.web.core.windows.net",
+        "*.blob.core.windows.net",
+        "Azure Static Websites"
+      ],
+      "attack": [
+        "T1190",
+        "T1552.001",
+        "T1078.004"
+      ],
+      "detections": [
+        "StorageBlobLogs: ListContainers operation from external IP on a static-site storage account",
+        "SAS issuance events with `srt=sco` and `sp` containing `l`",
+        "Sharp increase in GetBlob operations against certificate/config blobs from a single IP",
+        "Service Principal sign-in with cert auth shortly after a Certificate* blob read"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "StorageBlobLogs\n| where OperationName == \"ListContainers\"\n| where AuthenticationType == \"SAS\"\n| where CallerIpAddress !in (dynamic([\"<corp-nat>\"]))\n| summarize ContainerLists=count(), IPs=make_set(CallerIpAddress) by AccountName\n| where ContainerLists > 3\n",
+          "description": "Flags external SAS-authenticated container-list operations against storage accounts, a signature of account-scope SAS abuse.",
+          "source": "LOLPHISH / threat-hunting-wiki T027"
+        }
+      ],
+      "mitigations": [
+        "Issue object-scope SAS only (`srt=o`) for single-blob delivery",
+        "Use read-only permissions (`sp=r`) and short TTLs (hours, not days)",
+        "Add `sip=` IP restrictions where clients are predictable",
+        "Never store SP certs, PFXs, or config secrets in storage accounts with anonymous/static-website access",
+        "Prefer user-delegation SAS over account-key SAS"
+      ],
+      "refs": [
+        {
+          "title": "CARTE 2026-05 engagement notes — static-site SAS cert chain",
+          "url": "https://github.com/"
+        },
+        {
+          "title": "Microsoft — Grant limited access to Azure Storage resources using shared access signatures",
+          "url": "https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview"
+        }
+      ],
+      "since": "2026"
     },
     {
       "id": "tap-abuse",
@@ -1307,6 +1755,14 @@
         "Content/brand mismatch: relay sender + credential lure",
         "DMARC aggregate reports showing unowned sending sources"
       ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "let relayDomains = dynamic([\"sendgrid.net\", \"amazonses.com\", \"mailgun.org\", \"postmarkapp.com\", \"brevo.com\", \"smtp2go.com\"]);\nEmailEvents\n| where EmailDirection == \"Inbound\"\n| where SenderMailFromDomain has_any (relayDomains)\n| where DeliveryLocation == \"Inbox/folder\"\n| summarize MailCount=count(), Recipients=dcount(RecipientEmailAddress), Subjects=make_set(Subject) by SenderMailFromAddress\n| where MailCount > 10\n",
+          "description": "Flags high-volume inbound mail from transactional relay domains — a common BEC/TOAD delivery pattern.",
+          "source": "LOLPHISH"
+        }
+      ],
       "mitigations": [
         "Strict DMARC (p=reject) to shrink spoofing surface",
         "Inbound policy: relay-origin mail still subject to full content inspection",
@@ -1360,6 +1816,14 @@
         "Alert on wrapped links whose terminal domain is newly registered",
         "Click telemetry: rewrite-domain click from a tenant that never received the original mail"
       ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "EmailEvents\n| where EmailDirection == \"Inbound\"\n| where LinkUrl has_any (\"urldefense.com\", \"safelinks.protection.outlook.com\")\n| extend TerminalHost = parse_url(LinkUrl).Host\n| where isnotempty(TerminalHost)\n| summarize WrappedCount=count(), TerminalHosts=make_set(TerminalHost) by RecipientEmailAddress\n| where WrappedCount > 5\n",
+          "description": "Surfaces users receiving multiple SEG-rewritten links pointing to diverse terminal hosts — possible rewriter laundering.",
+          "source": "LOLPHISH"
+        }
+      ],
       "mitigations": [
         "SEG click-time re-scanning (not just delivery-time verdict)",
         "Block known open-redirect patterns at the proxy",
@@ -1376,6 +1840,70 @@
         }
       ],
       "since": "2021+ (chronic, under-cataloged)"
+    },
+    {
+      "id": "windows-hello-key-theft",
+      "name": "Windows Hello for Business Key Theft & Replay",
+      "category": "Identity Flow Abuse",
+      "vendors": [
+        "Microsoft Windows",
+        "Microsoft Entra ID"
+      ],
+      "summary": "Windows Hello for Business (WHFB) stores cryptographic keys in the TPM and uses them for passwordless sign-in to both the local device and Entra ID. The keys are device-bound and normally require a PIN or biometric to use.",
+      "abuse": "From a compromised user session, an attacker can use the Passport Key Storage Provider to sign arbitrary data with the victim's WHFB key without triggering a PIN/biometric prompt. The signed assertion can be exchanged for a Primary Refresh Token (PRT) or used directly in a WebAuthn/FIDO2 flow to request Entra ID tokens. Because the key counts as fresh MFA, the attacker can also register new passkeys or devices. The attack relies on legitimate SSO plumbing and cached ticket behavior, not a vulnerability in the cryptographic implementation.",
+      "variants": [
+        "Request PRT via signed WHFB assertion on a fake/joined device",
+        "Use WHFB key as FIDO2 passkey via WebAuthn to obtain tokens without device ID",
+        "Register a new device using the FIDO2 token, then request a PRT",
+        "Add additional backdoor passkeys because the WHFB-authenticated session counts as MFA"
+      ],
+      "kits": [
+        "ROADtools / roadtx",
+        "Mimikatz / SafetyKatz",
+        "PowerShell (NCrypt CNG interface)"
+      ],
+      "surfaces": [
+        "Windows TPM / NGC (Next Generation Cryptography) key store",
+        "Passport Key Storage Provider",
+        "login.microsoftonline.com",
+        "WebAuthn / FIDO2 endpoints"
+      ],
+      "attack": [
+        "T1528",
+        "T1550",
+        "T1098"
+      ],
+      "detections": [
+        "Sign-in using Windows Hello for Business from a device with an empty deviceId",
+        "Unexpected new Windows devices registered by a user",
+        "New passkeys or WHFB keys registered shortly after a suspicious sign-in",
+        "PRT requests from non-typical device contexts"
+      ],
+      "detection_code": [
+        {
+          "lang": "kql",
+          "query": "SigninLogs\n| where AuthenticationDetails has '\"authenticationMethod\":\"Windows Hello for Business\"'\n| where DeviceDetail.deviceId == \"\"\n| project TimeGenerated, UserPrincipalName, IPAddress, AppDisplayName, DeviceDetail\n",
+          "description": "Detects WHFB authentication events with no device ID, indicating use of the key outside its bound device context.",
+          "source": "Dirk-jan Mollema / LOLPHISH"
+        }
+      ],
+      "mitigations": [
+        "Require attestation for passkey registration where supported",
+        "Monitor for new device registrations and new authentication methods",
+        "Limit user self-service ability to register security info",
+        "Investigate any WHFB sign-in from an unmanaged or unknown device"
+      ],
+      "refs": [
+        {
+          "title": "Dirk-jan Mollema — Borrowing Windows Hello keys for authentication and persistence",
+          "url": "https://dirkjanm.io/borrowing-windows-hello-keys/"
+        },
+        {
+          "title": "ROADtools winhello_assertion",
+          "url": "https://github.com/dirkjanm/ROADtools/tree/master/winhello_assertion"
+        }
+      ],
+      "since": "2025"
     }
   ]
 }

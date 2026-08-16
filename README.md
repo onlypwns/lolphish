@@ -1,4 +1,4 @@
-# LOL<><PHISH
+# LOLPHISH
 
 **Living Off Legitimate Phishing Infrastructure** — a community catalog of the legitimate services, identity flows, and trust surfaces that phishing has industrialized on top of.
 

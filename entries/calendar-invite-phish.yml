@@ -33,6 +33,19 @@ detections:
 - Mail flow rules flagging .ics with URLs in DESCRIPTION/LOCATION
 - 'Endpoint: calendar events from external organizers with link payloads'
 - User-report pipeline tuned for calendar lures
+detection_code:
+- lang: kql
+  query: |
+    EmailEvents
+    | where EmailDirection == "Inbound"
+    | where Subject contains "invitation" or Subject contains "invite" or Subject contains "calendar"
+    | join kind=inner EmailAttachmentInfo on NetworkMessageId
+    | where FileType == "ics"
+    | where SenderFromDomain !contains RecipientDomain
+    | summarize InviteCount=count() by RecipientEmailAddress, SenderFromAddress, Subject
+    | where InviteCount > 2
+  description: Flags inbound .ics calendar invites from external senders hitting the same recipient repeatedly.
+  source: LOLPHISH
 mitigations:
 - 'Google Calendar: ''only add invitations I respond to'' / disable auto-add from unknown senders'
 - SEG coverage for invite-body URLs

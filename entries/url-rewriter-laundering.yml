@@ -38,6 +38,18 @@ detections:
 - Decoder that unwraps all known rewriter schemes to the terminal URL
 - Alert on wrapped links whose terminal domain is newly registered
 - 'Click telemetry: rewrite-domain click from a tenant that never received the original mail'
+detection_code:
+- lang: kql
+  query: |
+    EmailEvents
+    | where EmailDirection == "Inbound"
+    | where LinkUrl has_any ("urldefense.com", "safelinks.protection.outlook.com")
+    | extend TerminalHost = parse_url(LinkUrl).Host
+    | where isnotempty(TerminalHost)
+    | summarize WrappedCount=count(), TerminalHosts=make_set(TerminalHost) by RecipientEmailAddress
+    | where WrappedCount > 5
+  description: Surfaces users receiving multiple SEG-rewritten links pointing to diverse terminal hosts — possible rewriter laundering.
+  source: LOLPHISH
 mitigations:
 - SEG click-time re-scanning (not just delivery-time verdict)
 - Block known open-redirect patterns at the proxy

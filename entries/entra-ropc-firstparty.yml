@@ -32,6 +32,17 @@ detections:
 - Sign-ins with client app = 'Other clients' / public clients from data-center ASNs
 - Non-interactive sign-in volume spikes per client ID
 - Alert on known-abused first-party client IDs appearing from new IP ranges per user
+detection_code:
+- lang: kql
+  query: |
+    AADNonInteractiveUserSignInLogs
+    | where AuthenticationProtocol == "ROPC"
+    | summarize Count=count(), IPs=make_set(IPAddress), Apps=make_set(AppDisplayName), ClientIds=make_set(ClientId) by UserPrincipalName
+    | where Count > 5
+    | extend IPCount=array_length(IPs)
+    | where IPCount > 2
+  description: Surfaces users with multiple ROPC non-interactive sign-ins across multiple IPs/apps, a pattern common in first-party client-ID abuse.
+  source: LOLPHISH
 mitigations:
 - Block legacy auth org-wide and scope CA to 'all cloud apps' (no exclusions)
 - 'CA: require compliant/hybrid-joined device for public-client flows'

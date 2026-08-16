@@ -1,0 +1,57 @@
+# LOLPHISH entry — Exchange Hybrid S2S Actor Token Impersonation
+id: exchange-hybrid-s2s-impersonation
+name: Exchange Hybrid S2S Actor Token Impersonation
+category: Identity Flow Abuse
+vendors:
+- Microsoft Exchange Online
+- Microsoft Exchange Server
+summary: Exchange hybrid deployments use an OAuth2 certificate credential shared between on-premises Exchange Server and the Exchange Online service principal. This S2S trust is the legitimate plumbing of hybrid mailbox coexistence.
+abuse: >
+  An attacker with on-prem Exchange Server access extracts the hybrid certificate and uses it to request OAuth2 client-credentials tokens against the Exchange Online service principal. The resulting actor tokens can impersonate any user in the tenant for Exchange Online and SharePoint Online without MFA, Conditional Access, sign-in logs, or revocation. CVE-2025-53786 (disclosed at DEF CON 33, August 2025) documents this path. The abuse is architectural: the same certificate trusted for hybrid sync becomes a universal impersonation key.
+variants:
+- On-prem Exchange cert extraction via local admin / DPAPI
+- Actor token issuance via Access Control Service (ACS)
+- Mailbox read/write impersonation through Exchange Online
+- SharePoint Online / OneDrive impersonation using the same token
+- graph.windows.net impersonation (patched August 2025)
+kits:
+- adconnectdump
+- roadtx
+- impacket / Rubeus
+surfaces:
+- on-premises Exchange Server certificate store
+- accounts.accesscontrol.windows.net
+- Exchange Online service principal
+- graph.windows.net (patched vector)
+attack:
+- T1550.001
+- T1134
+detections:
+- AuditLogs events where "Office 365 Exchange Online" appears as both initiating service and user context
+- Unexpected cross-mailbox access attributed to Exchange Online service
+- SharePoint operations from Exchange Online outside known migration/sync workflows
+- New certificate credentials on the Exchange Online service principal
+detection_code:
+- lang: kql
+  query: |
+    AuditLogs
+    | where OperationName !contains "group"
+    | where OperationName != "Set directory feature on tenant"
+    | where InitiatedBy has_all ("Office 365 Exchange Online", "user")
+    | where InitiatedBy.user.displayName == "Office 365 Exchange Online"
+    | summarize Count=count() by OperationName, TargetResources
+  description: Detects audit events where Exchange Online appears to act as a user, a signature of S2S actor-token impersonation.
+  source: Dirk-jan Mollema / LOLPHISH T028
+mitigations:
+- Split Exchange on-prem and Exchange Online service principals (Microsoft-required by October 2025)
+- Restrict Exchange on-prem outbound network to expected ACS infrastructure
+- Audit and remove unrecognized certificate credentials on the Exchange Online service principal
+- Monitor AuditLogs for Exchange Online actor patterns until SP split is complete
+refs:
+- title: Dirk-jan Mollema — Borrowing Windows Hello keys / DEF CON 33
+  url: https://dirkjanm.io/
+- title: Microsoft — Exchange Server security changes for hybrid deployments
+  url: https://techcommunity.microsoft.com/blog/exchange/exchange-server-security-changes-for-hybrid-deployments/4396833
+- title: CVE-2025-53786 — MSRC advisory
+  url: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2025-53786
+since: "2025"

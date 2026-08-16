@@ -30,6 +30,17 @@ detections:
 - Inbound mail where internal sender resolves only via smart-host path (no auth results)
 - Alert on RejectDirectSend=false tenants receiving unauthenticated internal-claimed mail
 - New-tenant onmicrosoft senders with zero prior relationship
+detection_code:
+- lang: kql
+  query: |
+    EmailEvents
+    | where EmailDirection == "Inbound"
+    | where SenderMailFromDomain endswith ".onmicrosoft.com"
+    | where DeliveryLocation == "Inbox/folder"
+    | summarize Count=count(), FirstSeen=min(Timestamp), Subjects=make_set(Subject) by RecipientEmailAddress, SenderFromAddress, SenderMailFromDomain
+    | where Count > 2
+  description: Finds inbound mail delivered from *.onmicrosoft.com sender domains — common in burner-tenant Direct Send abuse.
+  source: LOLPHISH
 mitigations:
 - Set RejectDirectSend=true (Exchange Online org setting)
 - SPF hard-fail + DMARC reject; review hybrid connectors

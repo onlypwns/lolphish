@@ -1,0 +1,52 @@
+# LOLPHISH entry — Windows Hello for Business Key Theft
+id: windows-hello-key-theft
+name: Windows Hello for Business Key Theft & Replay
+category: Identity Flow Abuse
+vendors:
+- Microsoft Windows
+- Microsoft Entra ID
+summary: Windows Hello for Business (WHFB) stores cryptographic keys in the TPM and uses them for passwordless sign-in to both the local device and Entra ID. The keys are device-bound and normally require a PIN or biometric to use.
+abuse: From a compromised user session, an attacker can use the Passport Key Storage Provider to sign arbitrary data with the victim's WHFB key without triggering a PIN/biometric prompt. The signed assertion can be exchanged for a Primary Refresh Token (PRT) or used directly in a WebAuthn/FIDO2 flow to request Entra ID tokens. Because the key counts as fresh MFA, the attacker can also register new passkeys or devices. The attack relies on legitimate SSO plumbing and cached ticket behavior, not a vulnerability in the cryptographic implementation.
+variants:
+- Request PRT via signed WHFB assertion on a fake/joined device
+- Use WHFB key as FIDO2 passkey via WebAuthn to obtain tokens without device ID
+- Register a new device using the FIDO2 token, then request a PRT
+- Add additional backdoor passkeys because the WHFB-authenticated session counts as MFA
+kits:
+- ROADtools / roadtx
+- Mimikatz / SafetyKatz
+- PowerShell (NCrypt CNG interface)
+surfaces:
+- Windows TPM / NGC (Next Generation Cryptography) key store
+- Passport Key Storage Provider
+- login.microsoftonline.com
+- WebAuthn / FIDO2 endpoints
+attack:
+- T1528
+- T1550
+- T1098
+detections:
+- Sign-in using Windows Hello for Business from a device with an empty deviceId
+- Unexpected new Windows devices registered by a user
+- New passkeys or WHFB keys registered shortly after a suspicious sign-in
+- PRT requests from non-typical device contexts
+detection_code:
+- lang: kql
+  query: |
+    SigninLogs
+    | where AuthenticationDetails has '"authenticationMethod":"Windows Hello for Business"'
+    | where DeviceDetail.deviceId == ""
+    | project TimeGenerated, UserPrincipalName, IPAddress, AppDisplayName, DeviceDetail
+  description: Detects WHFB authentication events with no device ID, indicating use of the key outside its bound device context.
+  source: Dirk-jan Mollema / LOLPHISH
+mitigations:
+- Require attestation for passkey registration where supported
+- Monitor for new device registrations and new authentication methods
+- Limit user self-service ability to register security info
+- Investigate any WHFB sign-in from an unmanaged or unknown device
+refs:
+- title: Dirk-jan Mollema — Borrowing Windows Hello keys for authentication and persistence
+  url: https://dirkjanm.io/borrowing-windows-hello-keys/
+- title: ROADtools winhello_assertion
+  url: https://github.com/dirkjanm/ROADtools/tree/master/winhello_assertion
+since: "2025"

@@ -1,0 +1,49 @@
+# LOLPHISH entry — Azure Activity Log Claims Leak
+id: activity-log-claims-leak
+name: Azure Activity Log Managed-Identity Claims Leak
+category: Identity Flow Abuse
+vendors:
+- Microsoft Azure
+summary: Every call to Azure Resource Manager is written to the Activity Log with the full JWT claim payload of the calling identity. For Managed Identities, the claims include both the MI principal ID and the resource ID of the host that minted the token.
+abuse: Any principal with Reader on a resource can read that resource's Activity Log and extract `xms_mirid` (the Managed Identity) and `xms_az_rid` (the host resource) from every historical ARM call. This turns a read-only audit log into a privilege-escalation map — attackers discover exactly which VM, Function App, Container Instance, or Logic App hosts a privileged MI without needing RBAC on the host itself. The leak is a feature of the logging format, not a misconfiguration.
+variants:
+- Subscription-scope Activity Log sweep to enumerate all hosts touched by a privileged MI
+- Cross-resource-group pivoting via shared MI claim payloads
+- Targeting deployment-script Container Instances that are deleted post-run but whose logs persist 90 days
+- Combining with `wids` claim to prioritize hosts whose MIs hold directory roles
+kits:
+- ROADtools / roadtx
+- Az PowerShell (Get-AzLog)
+- Custom ARM REST callers
+surfaces:
+- management.azure.com
+- Azure Activity Log (microsoft.insights/eventtypes/management)
+- Get-AzLog / Invoke-AzRestMethod
+attack:
+- T1538
+- T1552.005
+- T1078.004
+detections:
+- 'AzureActivity: List management events queries from non-operations principals'
+- Repeated `eventtypes/management/values` reads across many resources by the same caller
+- External/guest UPN reading subscription-root Activity Log
+detection_code:
+- lang: kql
+  query: |
+    AzureActivity
+    | where OperationName == "List management events" or OperationNameValue == "MICROSOFT.INSIGHTS/EVENTTYPES/MANAGEMENT/VALUES/READ"
+    | summarize ReadCount=count(), Resources=make_set(Resource), IPs=make_set(CallerIpAddress) by Caller, CallerIpAddress
+    | where ReadCount > 10
+  description: Detects principals performing many Activity Log list operations, which may indicate claims-leak reconnaissance.
+  source: LOLPHISH / threat-hunting-wiki T026
+mitigations:
+- Grant Reader at the narrowest scope; avoid subscription-level Reader for non-ops accounts
+- Prefer system-assigned MIs over user-assigned MIs where possible
+- Delete short-lived deployment hosts immediately after use
+- Reduce Activity Log retention to the minimum required and send to a SIEM with strict access controls
+refs:
+- title: CARTE KC1–KC4 / MCRP — Activity Log claims leak notes
+  url: https://github.com/
+- title: Azure Activity Log overview
+  url: https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/activity-log
+since: "2026"

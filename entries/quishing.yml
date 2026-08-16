@@ -31,6 +31,18 @@ detections:
 - SEG with QR extraction/OCR; decode-and-rewrite URLs inside images
 - Sign-ins from mobile carrier ASNs post-delivery
 - Report-phish workflows tuned to image-only mails
+detection_code:
+- lang: kql
+  query: |
+    EmailEvents
+    | where EmailDirection == "Inbound"
+    | where AttachmentCount > 0 and BodyLength < 300
+    | join kind=inner EmailAttachmentInfo on NetworkMessageId
+    | where FileType in ("png", "jpg", "jpeg", "pdf")
+    | summarize ImageOnlyMails=count() by RecipientEmailAddress, SenderFromAddress
+    | where ImageOnlyMails > 2
+  description: Identifies image-heavy, text-light inbound email patterns that commonly carry quishing payloads.
+  source: LOLPHISH
 mitigations:
 - SEG QR decoding + click-time protection
 - Block/banner image-only emails from external senders

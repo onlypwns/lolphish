@@ -51,7 +51,7 @@ def fail(msg):
 
 
 def load_entries():
-    schema = json.load(open(SCHEMA_PATH))
+    schema = json.load(open(SCHEMA_PATH, encoding="utf-8"))
     entries = []
     paths = sorted(glob.glob(os.path.join(ENTRIES_DIR, "*.yml")))
     if not paths:
@@ -62,7 +62,7 @@ def load_entries():
         if slug.startswith("_"):
             continue  # skip _template.yml and friends
         try:
-            data = yaml.safe_load(open(path))
+            data = yaml.safe_load(open(path, encoding="utf-8"))
         except yaml.YAMLError as e:
             fail(f"{slug}: YAML parse error: {e}")
         if not isinstance(data, dict):
@@ -100,6 +100,7 @@ def build(entries):
         "entries": len(entries),
         "variants": sum(len(e["variants"]) for e in entries),
         "kits": sum(len(e["kits"]) for e in entries),
+        "vendors": sorted({v for e in entries for v in e["vendors"]}),
         "categories": sorted({e["category"] for e in entries}),
     }
 
@@ -111,12 +112,12 @@ def build(entries):
         {k: {"color": v["color"], "blurb": v["blurb"]} for k, v in CATEGORY_META.items()},
         indent=2, ensure_ascii=False) + ";\n"
 
-    with open(DATA_JS_PATH, "w") as f:
+    with open(DATA_JS_PATH, "w", encoding="utf-8") as f:
         f.write(js)
 
     os.makedirs(os.path.dirname(API_PATH), exist_ok=True)
-    with open(API_PATH, "w") as f:
-        json.dump({"version": "0.2", "generated_by": "lolphish build.py",
+    with open(API_PATH, "w", encoding="utf-8") as f:
+        json.dump({"version": "0.3", "generated_by": "lolphish build.py",
                    "stats": stats, "entries": entries}, f, indent=2, ensure_ascii=False)
 
     print(f"OK - {stats['entries']} entries, {stats['variants']} variants, "
