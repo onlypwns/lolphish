@@ -10,15 +10,13 @@ abuse: An attacker controlling an identity in an allowed source tenant may reach
   guest or synchronized identity. If inbound trust accepts an MFA claim already satisfied in the home tenant,
   the resource tenant need not prompt again; its applicable Conditional Access policies still govern access.
   Risk increases when guest users receive Member-like directory visibility, synchronization is too broad, or
-  an overprivileged application can create or modify external identities. A course lab demonstrated a directory
-  switch without an additional MFA prompt after TAP authentication under its configured cross-tenant trust.
+  an overprivileged application can create or modify external identities. A directory switch may occur without
+  another MFA prompt when the resource tenant accepts an MFA claim already satisfied in the home tenant.
 prerequisites:
 - Control of an identity or application in an allowed source tenant
 - A guest, synchronized identity, invitation path, or other authorization in the resource tenant
 - Cross-tenant access, trust, and resource permissions that permit the requested operation
 evidence:
-- type: lab-scenario
-  description: A course lab reported switching into a mapped resource tenant without another MFA prompt after authentication in the home tenant under configured cross-tenant trust.
 - type: vendor-documentation
   description: Microsoft documents separate inbound access controls, automatic redemption, and trust of MFA and device claims from external tenants.
 variants:

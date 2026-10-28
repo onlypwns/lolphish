@@ -10,17 +10,14 @@ summary: Resource Owner Password Credentials is a legacy OAuth grant where usern
   Azure CLI, broker apps) with broad scopes in every tenant.
 abuse: With a phished or otherwise compromised password, an attacker can attempt ROPC as a public first-party
   client and request pre-consented scopes without an interactive browser. The flow succeeds only where the
-  account and requested resource do not require controls that ROPC cannot satisfy. Course lab work demonstrated
-  a Microsoft Graph token being issued with a first-party client ID and a mobile-looking User-Agent under the
-  lab's policy configuration. Changing User-Agent text does not itself prove device compliance or universally
-  bypass MFA or Conditional Access.
+  account and requested resource do not require controls that ROPC cannot satisfy. Selecting a first-party
+  client ID can affect available scopes and token-family behavior, but changing a User-Agent string does not
+  prove device compliance or universally bypass MFA or Conditional Access.
 prerequisites:
 - Valid username and password for the target user
 - A tenant, account, client, and requested resource configuration that permits ROPC
 - Applicable Conditional Access and authentication requirements that do not block the flow
 evidence:
-- type: lab-scenario
-  description: A course lab reported successful Microsoft Graph token acquisition through ROPC using a first-party client ID and mobile-looking User-Agent.
 - type: vendor-documentation
   description: Microsoft documents ROPC as a legacy flow that cannot satisfy interactive MFA and can be blocked when MFA is required.
 - type: public-research

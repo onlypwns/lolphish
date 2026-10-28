@@ -513,17 +513,13 @@ const ENTRIES = [
       "Microsoft Entra ID"
     ],
     "summary": "Microsoft Entra External Identities let users from one tenant access resources in another as B2B guests. Cross-tenant settings separately control access, automatic redemption, and whether the resource tenant accepts MFA or device claims from a trusted home tenant.",
-    "abuse": "An attacker controlling an identity in an allowed source tenant may reach resources granted to that guest or synchronized identity. If inbound trust accepts an MFA claim already satisfied in the home tenant, the resource tenant need not prompt again; its applicable Conditional Access policies still govern access. Risk increases when guest users receive Member-like directory visibility, synchronization is too broad, or an overprivileged application can create or modify external identities. A course lab demonstrated a directory switch without an additional MFA prompt after TAP authentication under its configured cross-tenant trust.",
+    "abuse": "An attacker controlling an identity in an allowed source tenant may reach resources granted to that guest or synchronized identity. If inbound trust accepts an MFA claim already satisfied in the home tenant, the resource tenant need not prompt again; its applicable Conditional Access policies still govern access. Risk increases when guest users receive Member-like directory visibility, synchronization is too broad, or an overprivileged application can create or modify external identities. A directory switch may occur without another MFA prompt when the resource tenant accepts an MFA claim already satisfied in the home tenant.",
     "prerequisites": [
       "Control of an identity or application in an allowed source tenant",
       "A guest, synchronized identity, invitation path, or other authorization in the resource tenant",
       "Cross-tenant access, trust, and resource permissions that permit the requested operation"
     ],
     "evidence": [
-      {
-        "type": "lab-scenario",
-        "description": "A course lab reported switching into a mapped resource tenant without another MFA prompt after authentication in the home tenant under configured cross-tenant trust."
-      },
       {
         "type": "vendor-documentation",
         "description": "Microsoft documents separate inbound access controls, automatic redemption, and trust of MFA and device claims from external tenants."
@@ -752,17 +748,13 @@ const ENTRIES = [
       "Microsoft Entra ID"
     ],
     "summary": "Resource Owner Password Credentials is a legacy OAuth grant where username+password are sent straight to the token endpoint. Microsoft pre-consents dozens of first-party client IDs (Office, Teams, Azure CLI, broker apps) with broad scopes in every tenant.",
-    "abuse": "With a phished or otherwise compromised password, an attacker can attempt ROPC as a public first-party client and request pre-consented scopes without an interactive browser. The flow succeeds only where the account and requested resource do not require controls that ROPC cannot satisfy. Course lab work demonstrated a Microsoft Graph token being issued with a first-party client ID and a mobile-looking User-Agent under the lab's policy configuration. Changing User-Agent text does not itself prove device compliance or universally bypass MFA or Conditional Access.",
+    "abuse": "With a phished or otherwise compromised password, an attacker can attempt ROPC as a public first-party client and request pre-consented scopes without an interactive browser. The flow succeeds only where the account and requested resource do not require controls that ROPC cannot satisfy. Selecting a first-party client ID can affect available scopes and token-family behavior, but changing a User-Agent string does not prove device compliance or universally bypass MFA or Conditional Access.",
     "prerequisites": [
       "Valid username and password for the target user",
       "A tenant, account, client, and requested resource configuration that permits ROPC",
       "Applicable Conditional Access and authentication requirements that do not block the flow"
     ],
     "evidence": [
-      {
-        "type": "lab-scenario",
-        "description": "A course lab reported successful Microsoft Graph token acquisition through ROPC using a first-party client ID and mobile-looking User-Agent."
-      },
       {
         "type": "vendor-documentation",
         "description": "Microsoft documents ROPC as a legacy flow that cannot satisfy interactive MFA and can be blocked when MFA is required."
@@ -1582,10 +1574,6 @@ const ENTRIES = [
     ],
     "evidence": [
       {
-        "type": "lab-scenario",
-        "description": "A course lab reported successful SMTP sending for a per-mailbox-enabled user despite an MFA policy targeting that user and all cloud apps."
-      },
-      {
         "type": "vendor-documentation",
         "description": "Microsoft documents SMTP AUTH configuration, per-mailbox overrides, OAuth support, and controls for disabling Basic authentication."
       }
@@ -1727,7 +1715,7 @@ const ENTRIES = [
       "Microsoft Entra ID"
     ],
     "summary": "Temporary Access Pass is a time-limited, single-factor code issued by privileged Entra ID roles to let users register MFA methods or recover access without their normal credentials.",
-    "abuse": "An attacker controlling an identity authorized to manage a target's authentication methods can issue a TAP for an eligible user within that administrative scope, then use it to authenticate or bootstrap another method. A course lab demonstrated this through an application holding Authentication Administrator over an Administrative Unit, followed by cross-tenant access without an additional MFA prompt under the configured trust settings. The lab also observed an access token remaining usable for 70–75 minutes after a ten-minute TAP. These bounded observations do not mean TAP satisfies every authentication strength or bypasses every Conditional Access policy.",
+    "abuse": "An attacker controlling an identity authorized to manage a target's authentication methods can issue a TAP for an eligible user within that administrative scope, then use it to authenticate or bootstrap another method. Scoped Authentication Administrator rights can apply within an Administrative Unit, and a resulting session may cross into a resource tenant without another prompt when that tenant trusts the home tenant's MFA claim. TAP does not satisfy every authentication strength or bypass every Conditional Access policy; access and established-session lifetime depend on the applicable resource, trust, and session controls.",
     "prerequisites": [
       "Control of a principal authorized to create a TAP for the target user",
       "Target user included in the tenant TAP authentication-method policy",
@@ -1735,14 +1723,6 @@ const ENTRIES = [
       "Resource and cross-tenant policies that permit the resulting sign-in and access"
     ],
     "evidence": [
-      {
-        "type": "lab-scenario",
-        "description": "A course lab used an application with scoped Authentication Administrator rights to create a TAP, authenticate as an in-scope user, and switch into a trusted resource tenant."
-      },
-      {
-        "type": "lab-scenario",
-        "description": "The same lab reported access-token usability for 70–75 minutes after a TAP configured for ten minutes; this is an observation rather than a universal lifetime guarantee."
-      },
       {
         "type": "vendor-documentation",
         "description": "Microsoft documents TAP policy, role and scope behavior, authentication-strength compatibility, token lifetime considerations, and cross-tenant MFA trust."

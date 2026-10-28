@@ -39,7 +39,7 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["lab-scenario", "vendor-documentation", "public-research",
+            "enum": ["vendor-documentation", "public-research",
                      "observed-campaign", "independent-test"]
           },
           "description": { "type": "string", "minLength": 20 }

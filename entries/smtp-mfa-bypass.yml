@@ -17,8 +17,6 @@ prerequisites:
 - Basic SMTP AUTH enabled and available for that mailbox
 - No applicable policy successfully blocking legacy authentication for the sign-in
 evidence:
-- type: lab-scenario
-  description: A course lab reported successful SMTP sending for a per-mailbox-enabled user despite an MFA policy targeting that user and all cloud apps.
 - type: vendor-documentation
   description: Microsoft documents SMTP AUTH configuration, per-mailbox overrides, OAuth support, and controls for disabling Basic authentication.
 variants:

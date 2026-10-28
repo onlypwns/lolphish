@@ -9,21 +9,16 @@ summary: Temporary Access Pass is a time-limited, single-factor code issued by p
   to let users register MFA methods or recover access without their normal credentials.
 abuse: An attacker controlling an identity authorized to manage a target's authentication methods can issue
   a TAP for an eligible user within that administrative scope, then use it to authenticate or bootstrap another
-  method. A course lab demonstrated this through an application holding Authentication Administrator over an
-  Administrative Unit, followed by cross-tenant access without an additional MFA prompt under the configured
-  trust settings. The lab also observed an access token remaining usable for 70–75 minutes after a ten-minute
-  TAP. These bounded observations do not mean TAP satisfies every authentication strength or bypasses every
-  Conditional Access policy.
+  method. Scoped Authentication Administrator rights can apply within an Administrative Unit, and a resulting
+  session may cross into a resource tenant without another prompt when that tenant trusts the home tenant's MFA
+  claim. TAP does not satisfy every authentication strength or bypass every Conditional Access policy; access
+  and established-session lifetime depend on the applicable resource, trust, and session controls.
 prerequisites:
 - Control of a principal authorized to create a TAP for the target user
 - Target user included in the tenant TAP authentication-method policy
 - Role scope covering the target, including any Administrative Unit boundary
 - Resource and cross-tenant policies that permit the resulting sign-in and access
 evidence:
-- type: lab-scenario
-  description: A course lab used an application with scoped Authentication Administrator rights to create a TAP, authenticate as an in-scope user, and switch into a trusted resource tenant.
-- type: lab-scenario
-  description: The same lab reported access-token usability for 70–75 minutes after a TAP configured for ten minutes; this is an observation rather than a universal lifetime guarantee.
 - type: vendor-documentation
   description: Microsoft documents TAP policy, role and scope behavior, authentication-strength compatibility, token lifetime considerations, and cross-tenant MFA trust.
 variants:

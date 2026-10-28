@@ -33,7 +33,7 @@ Every entry is a full record, LOLBAS-style:
 | `summary` | What the legitimate thing is for |
 | `abuse` | The abuse primitive — the "how" |
 | `prerequisites` | Starting access and configuration required for the path |
-| `evidence` | Lab, documentation, research, testing, or campaign support—and its scope |
+| `evidence` | Documentation, research, independent testing, or campaign support—and its scope |
 | `variants` | Named mutations (each variant usually exists to defeat a *specific* control) |
 | `kits` | Phishing kits, tooling, tracked actors |
 | `surfaces` | The trust surfaces that make it credible |
@@ -137,9 +137,9 @@ The catalog is only as good as its coverage. Wanted:
 
 Ground rules:
 
-1. **Defensive evidence only.** Public research and vendor documentation are preferred. Reproducible lab scenarios are welcome when their prerequisites and observed scope are explicit; never publish private course material or undisclosed vulnerabilities.
+1. **Defensive evidence only.** Support claims with public research, vendor documentation, independently reproducible testing, or observed campaigns; never publish private material or undisclosed vulnerabilities.
 2. **Every entry needs detection + mitigation fields.** An entry that's only a menu for attackers doesn't get merged.
-3. **Separate possibility from prevalence.** Label lab scenarios, documented behavior, public research, independent tests, and observed campaigns accurately.
+3. **Separate possibility from prevalence.** Label documented behavior, public research, independent tests, and observed campaigns accurately.
 4. **Queries start as hunts.** Mark a snippet `validated` only after it has been executed in the named product with representative positive and negative cases.
 
 ## Sibling projects & sources
@@ -153,7 +153,7 @@ Ground rules:
 
 ## Disclaimer
 
-This project exists for **defensive security**: detection engineering, threat modeling, and security awareness. Entries combine public sources and bounded lab observations; applicability depends on configuration. If you find a technique useful, validate it and go kill it in your environment.
+This project exists for **defensive security**: detection engineering, threat modeling, and security awareness. Entries combine public sources and bounded technical claims; applicability depends on configuration. If you find a technique useful, validate it and go kill it in your environment.
 
 ---
 

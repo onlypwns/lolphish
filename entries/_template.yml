@@ -42,13 +42,13 @@ prerequisites:
   - Compromised identity, token, application, or other starting access
   - Product or policy configuration required for the scenario
 
-# Distinguish plausible lab paths, documented behavior, published research,
-# reproduced tests, and campaigns. Describe the limits of each item.
+# Distinguish documented behavior, published research, reproduced tests,
+# and observed campaigns. Describe the limits of each item.
 evidence:
-  - type: lab-scenario
-    description: "Observed in a named/versioned course lab under the prerequisites above"
   - type: vendor-documentation
     description: "Vendor documentation confirms the underlying product behavior"
+  - type: public-research
+    description: "Published research demonstrates the abuse path and its prerequisites"
 
 # Named mutations. Each variant should exist for a reason —
 # ideally a specific control it defeats. Observed or published only.

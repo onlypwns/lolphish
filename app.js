@@ -418,7 +418,6 @@
 
   function evidenceHTML(items) {
     const labels = {
-      "lab-scenario": "Lab scenario",
       "vendor-documentation": "Vendor documentation",
       "public-research": "Public research",
       "observed-campaign": "Observed campaign",
