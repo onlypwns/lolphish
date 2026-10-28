@@ -26,7 +26,7 @@ attack:
 - T1078.004
 detections:
 - 'StorageBlobLogs: ListContainers operation from external IP on a static-site storage account'
-- SAS issuance events with `srt=sco` and `sp` containing `l`
+- Storage access using an account SAS with service/container listing behavior; SAS generation itself is not comprehensively auditable
 - Sharp increase in GetBlob operations against certificate/config blobs from a single IP
 - Service Principal sign-in with cert auth shortly after a Certificate* blob read
 detection_code:
@@ -41,7 +41,7 @@ detection_code:
   description: Flags external SAS-authenticated container-list operations against storage accounts, a signature of account-scope SAS abuse.
   source: LOLPHISH / threat-hunting-wiki T027
 mitigations:
-- Issue object-scope SAS only (`srt=o`) for single-blob delivery
+- For single-blob delivery, issue a blob-scoped service SAS or user-delegation SAS; `srt=o` on an account SAS does not bind it to one blob
 - Use read-only permissions (`sp=r`) and short TTLs (hours, not days)
 - Add `sip=` IP restrictions where clients are predictable
 - Never store SP certs, PFXs, or config secrets in storage accounts with anonymous/static-website access

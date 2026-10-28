@@ -5,13 +5,22 @@ category: Trusted Delivery
 status: partially-mitigated
 vendors:
 - Microsoft 365 / Exchange Online
-summary: SMTP Auth is a legacy mail-sending protocol in Exchange Online. Even when modern authentication
-  and Conditional Access enforce MFA for interactive sign-ins, SMTP Auth can send mail as a user with only
-  username and password — bypassing all CAP controls.
-abuse: A phished or brute-forced password becomes an internal phishing delivery mechanism. The attacker sends
-  lure emails as the compromised user from `smtp.office365.com`, inheriting the user's display name, internal
-  address, and existing conversation threads. Because the message originates from the real mailbox, SPF/DKIM/DMARC
-  pass and SEG allowlists do not block it. SMTP Auth can also be enabled per-user even when disabled tenant-wide.
+summary: SMTP AUTH is a mail-sending protocol in Exchange Online that can use OAuth or, where it remains
+  available, Basic authentication. Per-mailbox settings and organization policy determine whether a user can use it.
+abuse: Where password-based SMTP AUTH remains enabled and applicable controls permit legacy authentication,
+  a stolen username and password can let an attacker send mail as the compromised user without an interactive
+  MFA challenge. The messages inherit the real mailbox identity and can support internal phishing or reply-chain
+  abuse. This is a configuration-dependent post-compromise path, not an intrinsic bypass of every Conditional
+  Access policy; policies that block legacy authentication can stop it.
+prerequisites:
+- Valid credentials for the target mailbox
+- Basic SMTP AUTH enabled and available for that mailbox
+- No applicable policy successfully blocking legacy authentication for the sign-in
+evidence:
+- type: lab-scenario
+  description: A course lab reported successful SMTP sending for a per-mailbox-enabled user despite an MFA policy targeting that user and all cloud apps.
+- type: vendor-documentation
+  description: Microsoft documents SMTP AUTH configuration, per-mailbox overrides, OAuth support, and controls for disabling Basic authentication.
 variants:
 - Compromised credential → direct SMTP Auth lure delivery
 - SMTP Auth used for reply-chain hijacking from a real mailbox
@@ -48,9 +57,6 @@ detection_code:
     | where TimeGenerated > ago(24h)
     | where ResultType == 0
     | where ClientAppUsed == "SMTP"
-       or ApplicationId == "00000002-0000-0ff1-ce00-000000000000"  // Exchange Online
-    | extend Protocol = tostring(parse_json(AuthenticationDetails)[0].authenticationProtocol)
-    | where Protocol == "SMTP" or ClientAppUsed == "SMTP"
     | project TimeGenerated, UserPrincipalName, IPAddress, Location, ClientAppUsed,
               AppDisplayName, ConditionalAccessStatus
     | sort by TimeGenerated desc
@@ -58,16 +64,19 @@ detection_code:
   source: Threat Hunting Wiki — T016 smtp-mfa-bypass
 - lang: kql
   query: |
-    let KnownInternalDomains = dynamic(["yourdomain.com", "yourdomain.onmicrosoft.com"]);
+    let KnownPairs = SigninLogs
+    | where TimeGenerated between (ago(30d) .. ago(1d))
+    | where ResultType == 0 and ClientAppUsed == "SMTP"
+    | distinct UserPrincipalName, IPAddress;
     SigninLogs
-    | where TimeGenerated > ago(24h)
-    | where ClientAppUsed == "SMTP"
-    | extend SenderDomain = tostring(split(UserPrincipalName, "@")[1])
-    | where not(SenderDomain in (KnownInternalDomains))
-    | project TimeGenerated, UserPrincipalName, SenderDomain, IPAddress, Location
+    | where TimeGenerated > ago(1d)
+    | where ResultType == 0 and ClientAppUsed == "SMTP"
+    | join kind=leftanti KnownPairs on UserPrincipalName, IPAddress
+    | project TimeGenerated, UserPrincipalName, IPAddress, Location,
+              AppDisplayName, ConditionalAccessStatus
     | sort by TimeGenerated desc
-  description: SMTP Auth attempts from non-corporate sender domains — tune for your accepted domains.
-  source: Threat Hunting Wiki — T016 smtp-mfa-bypass
+  description: Successful SMTP authentication from a user/IP pair absent from the preceding 29-day baseline.
+  source: LOLPHISH
 refs:
 - title: Microsoft — Disable Basic authentication in Exchange Online
   url: https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/disable-basic-authentication-in-exchange-online

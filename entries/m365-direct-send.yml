@@ -37,7 +37,7 @@ detection_code:
     EmailEvents
     | where EmailDirection == "Inbound"
     | where SenderMailFromDomain endswith ".onmicrosoft.com"
-    | where DeliveryLocation == "Inbox/folder"
+    | where DeliveryLocation == "Inbox/Folder"
     | summarize Count=count(), FirstSeen=min(Timestamp), Subjects=make_set(Subject) by RecipientEmailAddress, SenderFromAddress, SenderMailFromDomain
     | where Count > 2
   description: Finds inbound mail delivered from *.onmicrosoft.com sender domains — common in burner-tenant Direct Send abuse.

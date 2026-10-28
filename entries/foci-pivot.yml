@@ -7,10 +7,15 @@ vendors:
 - Microsoft Entra ID
 summary: 'Family of Client IDs (FOCI) lets Microsoft''s own apps share refresh tokens: a refresh token
   issued to one family member can be redeemed for tokens to another family member''s resources.'
-abuse: 'Any phished or ROPC-minted first-party refresh token becomes a skeleton key: redeem it as Teams,
-  then pivot the family to reach Office mail, Graph, or broker scopes the original grant never asked for.
-  This turns low-scope compromises into broad mailbox/data access and complicates revocation scoping —
-  defenders must kill the family, not the single token.'
+abuse: 'A stolen family refresh token may be redeemable by another client in the same family, subject to
+  the token family, tenant policy, resource authorization, consent, and scope behavior. This can let an attacker
+  request tokens through first-party clients beyond the client that obtained the original token and complicate
+  incident scoping. It is not unrestricted access to every family client or resource; defenders should revoke
+  the user session family and validate which resources were actually reached.'
+prerequisites:
+- A stolen refresh token issued to a client participating in the relevant token family
+- Another family client and requested resource/scope combination accepted by the identity platform
+- User and tenant authorization for the target resource
 variants:
 - Broker-client escalation into FOCI family
 - Post-AiTM session laundering into FOCI tokens for durability
@@ -50,7 +55,7 @@ detection_code:
         "MEDIUM — review"
       )
     | sort by DistinctApps desc, TokenCount desc
-  description: Rapid non-interactive token acquisition across multiple first-party app IDs from the same IP.
+  description: Rapid non-interactive activity across multiple first-party app IDs from the same IP; investigate as a correlation signal because the query does not prove family-token redemption.
   source: Threat Hunting Wiki — D002 foci-token-anomalies
 - lang: kql
   query: |
@@ -81,7 +86,7 @@ detection_code:
         ArmIP,
         SameIP = GraphIP == ArmIP
     | sort by MinutesBetween asc
-  description: FOCI-mediated escalation from Microsoft Graph to Azure Resource Manager within 30 minutes.
+  description: Correlates Graph and Azure Resource Manager activity within 30 minutes; this sequence alone does not prove FOCI-mediated token exchange.
   source: Threat Hunting Wiki — D002 foci-token-anomalies
 mitigations:
 - Revoke at the user level (all refresh tokens) on any identity-phish event — not per-session

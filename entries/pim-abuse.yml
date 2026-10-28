@@ -7,14 +7,19 @@ vendors:
 - Microsoft Entra ID
 summary: Privileged Identity Management enforces just-in-time activation for eligible Entra ID/Azure AD roles,
   typically requiring MFA and optionally approval before a user gains privileged access.
-abuse: Two weaknesses make PIM exploitable. First, an access token stolen *before* a role activation inherits
-  the new role's privileges immediately after activation — PIM does not re-evaluate existing tokens. Second,
-  an application with RoleManagement.ReadWrite.Directory can activate eligible roles programmatically,
-  bypassing the approval workflow entirely. The result is privilege escalation without the expected MFA or
-  approval chain.
+abuse: After compromising an eligible identity or sufficiently privileged application, an attacker may activate,
+  assign, or exploit privileged access under the permissions and PIM settings available to that principal.
+  Stolen refresh or session material can sometimes be used after activation to request new access tokens that
+  reflect the activated role; an already-issued access token does not retroactively gain new role claims.
+  Programmatic role-management paths must be assessed separately for eligibility, approval, MFA, permission,
+  and scope requirements rather than assumed to bypass every PIM control.
+prerequisites:
+- Control of an eligible user, its reusable session material, or an application with relevant role-management authority
+- A privileged role assignment or activation path within the compromised principal's scope
+- Resource authorization that recognizes the resulting assignment or newly issued token
 variants:
-- Pre-activation token theft → wait/trigger role activation → token now has role privileges
-- Misconfigured web app or compromised SPN activates role without PIM approval
+- Pre-activation refresh/session theft → role activation → request a new token reflecting current privileges
+- Misconfigured web app or compromised service principal performs an authorized role-management operation
 - Guest/B2B user with eligible role activated by attacker-controlled app
 - Custom role (e.g., Groups Administrator) scoped to a group used to access Key Vault or other resources
 kits:
@@ -33,7 +38,7 @@ detections:
 - AuditLogs "Add member to role in PIM (completed)" initiated by an app (InitiatedBy.app)
 - Role activation with no preceding PIM approval request for high-impact roles
 - Group membership changes shortly after a PIM role activation for the same actor
-- Sign-in token `iat` claim predates the role activation timestamp for privileged operations
+- New token issuance or privileged operations shortly after activation from a changed IP, device, or session context
 mitigations:
 - Require phishing-resistant MFA and approval for all high-impact PIM role activations
 - Audit apps holding RoleManagement.ReadWrite.Directory; remove where not strictly required

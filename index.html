@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=0.5">
+<link rel="stylesheet" href="styles.css?v=0.6">
 <script>
   /* theme init before first paint to prevent FOUC */
   (function () {
@@ -50,8 +50,8 @@
 </header>
 
 <div class="hero">
-  <h2>A catalog of legitimate mechanisms abused for phishing.</h2>
-  <p>Auth flows, notification pipelines, hosting surfaces, and social-engineering primitives — structured for detection engineers and threat modelers.</p>
+  <h2>A catalog of legitimate mechanisms abused across phishing and post-compromise chains.</h2>
+  <p>Auth flows, notification pipelines, hosting surfaces, and lateral-movement primitives — structured as research and detection starting points for defenders.</p>
 </div>
 
 <div class="filterbar">
@@ -98,7 +98,7 @@
   </div>
   <div class="about-card">
     <h3>Built for defenders</h3>
-    <p>Every entry documents the abuse primitive, variants, kits, trust surfaces, ATT&amp;CK mappings, detection telemetry, and structural mitigations — not just the IOC of the week.</p>
+    <p>The data model distinguishes prerequisites, evidence, abuse paths, telemetry, and mitigations. Detection snippets are hunting starting points unless explicitly marked validated.</p>
   </div>
   <div class="about-card">
     <h3>Sources</h3>
@@ -106,12 +106,34 @@
   </div>
 </section>
 
+<section class="data-access" aria-labelledby="data-access-title">
+  <div class="data-access-copy">
+    <span class="data-kicker">OPEN DATA · MIT LICENSE</span>
+    <h3 id="data-access-title">Build on the catalog</h3>
+    <p>Download the complete JSON feed, work from the source YAML records, or validate your own entries against the public schema. The same build script generates both the website data and the API.</p>
+  </div>
+  <div class="data-links">
+    <a class="data-link primary" href="api/entries.json" download>
+      <b>Download JSON API</b><span>Complete catalog + statistics</span>
+    </a>
+    <a class="data-link" href="https://github.com/onlypwns/lolphish/tree/main/entries" target="_blank" rel="noopener">
+      <b>Browse raw YAML</b><span>One source record per entry</span>
+    </a>
+    <a class="data-link" href="https://github.com/onlypwns/lolphish/blob/main/schema/entry.schema.json" target="_blank" rel="noopener">
+      <b>View schema</b><span>Validate tools and contributions</span>
+    </a>
+    <a class="data-link" href="https://github.com/onlypwns/lolphish/blob/main/build.py" target="_blank" rel="noopener">
+      <b>View build script</b><span>Generate JSON and browser data</span>
+    </a>
+  </div>
+</section>
+
 <footer>
-  <span>LOLPHISH v0.4 — community catalog · <a href="api/entries.json">API</a></span>
+  <span>LOLPHISH v0.6 — community catalog · <a href="api/entries.json">JSON API</a> · <a href="https://github.com/onlypwns/lolphish" target="_blank" rel="noopener">Source</a></span>
   <span>the phish is the platform</span>
 </footer>
 
-<script src="data.js?v=0.5"></script>
-<script src="app.js?v=0.5"></script>
+<script src="data.js?v=0.6"></script>
+<script src="app.js?v=0.6"></script>
 </body>
 </html>

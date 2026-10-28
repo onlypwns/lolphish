@@ -10,7 +10,9 @@ summary: GitHub implements the same RFC 8628 device flow for CLIs and headless e
 abuse: Attackers lure developers — frequently via fake job interviews, repo-collaboration invites, or
   fake security alerts — into entering an attacker-generated code on the real GitHub device page, or into
   authorizing an attacker OAuth app. Yields repo access, org membership visibility, and tokens usable
-  against private code and CI secrets. The 2024-25 wave of dev-targeted recruitment lures leaned heavily
+  against private code and CI workflows. Depending on repository permissions and workflow controls, compromise
+  may also enable changes that cause workflows to use configured secrets; GitHub does not expose stored secret
+  values directly through ordinary OAuth access. The 2024-25 wave of dev-targeted recruitment lures leaned heavily
   on this.
 variants:
 - Fake recruiter / coding-challenge repos pushing device-code 'setup tools'
@@ -37,9 +39,9 @@ detection_code:
     let githubDeviceEndpoints = dynamic(["github.com/login/device"]);
     DeviceNetworkEvents
     | where RemoteUrl has_any (githubDeviceEndpoints)
-    | summarize DeviceFlowVisits=count(), FirstSeen=min(Timestamp), LastSeen=max(Timestamp) by DeviceName, AccountName, RemoteUrl
+    | summarize DeviceFlowVisits=count(), FirstSeen=min(Timestamp), LastSeen=max(Timestamp) by DeviceName, InitiatingProcessAccountName, RemoteUrl
     | where DeviceFlowVisits > 3
-  description: Detects repeated visits to GitHub's device-flow page from endpoints/users with no normal CLI tooling use.
+  description: Hunts for repeated connections whose telemetry includes GitHub's device-flow path; requires a network source that records full URLs, not only hostnames.
   source: LOLPHISH
 mitigations:
 - 'Org policy: restrict third-party OAuth application access'

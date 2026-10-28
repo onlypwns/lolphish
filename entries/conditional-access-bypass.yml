@@ -41,9 +41,9 @@ detection_code:
       "ff9ebd75-fe62-434a-a6ce-b3f0a8592eaf"
     ]);
     SigninLogs
-    | where AppId in (excludedResources)
+    | where ResourceId in (excludedResources)
     | where ConditionalAccessStatus == "notApplied"
-    | summarize Count=count() by UserPrincipalName, AppDisplayName, AppId, IPAddress
+    | summarize Count=count() by UserPrincipalName, ResourceDisplayName, ResourceId, IPAddress
   description: Flags token requests to Microsoft resources that are permanently excluded from Conditional Access enforcement.
   source: Fabian Bader / Dirk-jan Mollema / LOLPHISH T005
 mitigations:

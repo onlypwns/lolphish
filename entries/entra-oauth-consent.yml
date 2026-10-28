@@ -27,7 +27,7 @@ surfaces:
 - login.microsoftonline.com consent page
 - accounts.google.com consent page
 attack:
-- T1566.001 — Spearphishing Link
+- T1566.002 — Spearphishing Link
 - T1550.001 — Use Alternate Authentication Material
 - T1098.003 — Additional App Roles
 detections:
@@ -68,9 +68,8 @@ detection_code:
         AADServicePrincipalSignInLogs
         | where TimeGenerated > ago(7d)
         | where ResultType == 0
-        | extend CallerTenantId = tostring(todynamic(Claims)["http://schemas.microsoft.com/identity/claims/tenantid"])
-        | where isnotempty(CallerTenantId) and CallerTenantId != HomeTenantId
-        | summarize ExternalTenants = make_set(CallerTenantId), FirstSignIn = min(TimeGenerated),
+        | where isnotempty(AppOwnerTenantId) and AppOwnerTenantId != HomeTenantId
+        | summarize ExternalTenants = make_set(AppOwnerTenantId), FirstSignIn = min(TimeGenerated),
                     ResourceList = make_set(ResourceDisplayName) by ServicePrincipalId
     ) on $left.SpObjectId == $right.ServicePrincipalId
     | project TimeGenerated, ActorUPN, ActorIP, AppName, SpObjectId, ExternalTenants, ResourceList, FirstSignIn

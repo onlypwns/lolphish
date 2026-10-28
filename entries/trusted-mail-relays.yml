@@ -43,7 +43,7 @@ detection_code:
     EmailEvents
     | where EmailDirection == "Inbound"
     | where SenderMailFromDomain has_any (relayDomains)
-    | where DeliveryLocation == "Inbox/folder"
+    | where DeliveryLocation == "Inbox/Folder"
     | summarize MailCount=count(), Recipients=dcount(RecipientEmailAddress), Subjects=make_set(Subject) by SenderMailFromAddress
     | where MailCount > 10
   description: Flags high-volume inbound mail from transactional relay domains — a common BEC/TOAD delivery pattern.

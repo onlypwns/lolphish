@@ -59,7 +59,7 @@ detection_code:
     | where EventSource == "sso.amazonaws.com" and EventName == "CreateToken"
     | extend GrantType = tostring(parse_json(RequestParameters).grantType)
     | where GrantType == "urn:ietf:params:oauth:grant-type:device_code"
-    | project TimeGenerated, User, SourceIpAddress, UserAgent, EventName, GrantType
+    | project TimeGenerated, UserIdentityArn, SourceIpAddress, UserAgent, EventName, GrantType
     | sort by TimeGenerated desc
   description: Find classic AWS Identity Center device-code token grants after migration to PKCE.
   source: LOLPHISH

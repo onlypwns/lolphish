@@ -51,9 +51,9 @@ detection_code:
   query: |
     let platformDomains = dynamic(["workers.dev", "pages.dev", "vercel.app", "netlify.app", "web.app", "firebaseapp.com", "azurestaticapps.net", "github.io", "onrender.com", "up.railway.app"]);
     DeviceNetworkEvents
-    | where RemoteUrl endswith_any (platformDomains)
+    | where RemoteUrl has_any (platformDomains)
     | where RemoteUrl contains "login" or RemoteUrl contains "signin" or RemoteUrl contains "auth" or RemoteUrl contains "verify"
-    | summarize Hits=count(), FirstSeen=min(Timestamp), Users=make_set(AccountName) by RemoteUrl
+    | summarize Hits=count(), FirstSeen=min(Timestamp), Users=make_set(InitiatingProcessAccountName) by RemoteUrl
     | where Hits > 5
   description: Hunts for authentication-themed pages hosted on JAMstack/serverless platforms that are commonly abused for phishing.
   source: LOLPHISH

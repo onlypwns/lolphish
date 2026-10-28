@@ -19,6 +19,11 @@ The perimeter learned to block bad domains. So phishing moved to *good* ones.
 
 Domain lists can't fix this. You have to understand the **abused primitive**. That's what each entry documents.
 
+LOLPHISH is a defender-focused research and threat-modeling catalog. It includes observed
+campaigns, public research, documented product behavior, and plausible paths demonstrated in
+labs. Detection snippets are hunting starting points unless explicitly marked `validated`; test
+their tables, fields, thresholds, and false positives in your own environment before operational use.
+
 ## Catalog structure
 
 Every entry is a full record, LOLBAS-style:
@@ -27,6 +32,8 @@ Every entry is a full record, LOLBAS-style:
 |---|---|
 | `summary` | What the legitimate thing is for |
 | `abuse` | The abuse primitive — the "how" |
+| `prerequisites` | Starting access and configuration required for the path |
+| `evidence` | Lab, documentation, research, testing, or campaign support—and its scope |
 | `variants` | Named mutations (each variant usually exists to defeat a *specific* control) |
 | `kits` | Phishing kits, tooling, tracked actors |
 | `surfaces` | The trust surfaces that make it credible |
@@ -67,6 +74,25 @@ Every entry is a full record, LOLBAS-style:
 
 > **Contribution model:** copy `entries/_template.yml`, fill it in, run `python3 build.py`, and PR the new YAML together with the regenerated `data.js` and `api/entries.json`. No site code needs to be touched.
 
+## Use the data
+
+The catalog is reusable under the MIT license:
+
+- [`api/entries.json`](api/entries.json) is the complete generated feed, including statistics and every entry.
+- [`entries/`](entries/) contains the editable YAML source records.
+- [`schema/entry.schema.json`](schema/entry.schema.json) is the JSON Schema for validation and tooling.
+- [`build.py`](build.py) validates the YAML and regenerates both `data.js` and the JSON API.
+
+Download the published API with `curl` or any HTTP client:
+
+```bash
+curl -L https://onlypwns.github.io/lolphish/api/entries.json -o lolphish-entries.json
+jq '.entries[] | {id, name, prerequisites, evidence}' lolphish-entries.json
+```
+
+Consumers can store, transform, enrich, or build their own tools from the feed under the license.
+The `usage_note` and per-query `status` fields distinguish hunting material from validated content.
+
 ## Running locally
 
 ### Preview the built site
@@ -88,6 +114,18 @@ python3 build.py --check
 
 Opening `index.html` directly from disk also works after `build.py` has run — data is a plain script include.
 
+### Browser regression tests
+
+```bash
+pip install -r tests/requirements.txt
+python3 -m playwright install chromium
+python3 -m unittest discover -s tests -v
+```
+
+The tests start their own local server and cover reference-link safety, filter/selection state,
+responsive accordion sizing, and deep links. To use an existing Chromium installation, set
+`CHROMIUM_EXECUTABLE` to its executable path when running the tests.
+
 ## Contributing
 
 The catalog is only as good as its coverage. Wanted:
@@ -99,9 +137,10 @@ The catalog is only as good as its coverage. Wanted:
 
 Ground rules:
 
-1. **Public research only.** Everything here is already documented — the value is structuring it for defenders, not disclosing anything new.
+1. **Defensive evidence only.** Public research and vendor documentation are preferred. Reproducible lab scenarios are welcome when their prerequisites and observed scope are explicit; never publish private course material or undisclosed vulnerabilities.
 2. **Every entry needs detection + mitigation fields.** An entry that's only a menu for attackers doesn't get merged.
-3. **Variants must be real.** Named, observed in the wild or in published research, sourced.
+3. **Separate possibility from prevalence.** Label lab scenarios, documented behavior, public research, independent tests, and observed campaigns accurately.
+4. **Queries start as hunts.** Mark a snippet `validated` only after it has been executed in the named product with representative positive and negative cases.
 
 ## Sibling projects & sources
 
@@ -114,7 +153,7 @@ Ground rules:
 
 ## Disclaimer
 
-This project exists for **defensive security**: detection engineering, threat modeling, and security awareness. All content is aggregated from public research. If you find a technique useful, your job is to go kill it in your environment.
+This project exists for **defensive security**: detection engineering, threat modeling, and security awareness. Entries combine public sources and bounded lab observations; applicability depends on configuration. If you find a technique useful, validate it and go kill it in your environment.
 
 ---
 

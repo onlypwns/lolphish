@@ -406,6 +406,20 @@ ul.ticklist li::before {
 .since b { color: var(--text); font-weight: 600; }
 
 /* ---------- detection code blocks ---------- */
+.code-notice {
+  margin: 0 0 12px; padding: 10px 12px;
+  border: 1px solid var(--border); border-left: 3px solid var(--gold);
+  border-radius: var(--radius-sm); background: var(--bg-sunk);
+  color: var(--muted); font-size: 12px; line-height: 1.55;
+}
+.evidence-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.evidence-list li { color: var(--text); font-size: 13px; line-height: 1.55; }
+.evidence-type {
+  display: inline-block; margin-right: 8px; padding: 2px 7px;
+  border: 1px solid var(--border); border-radius: 999px;
+  color: var(--aqua); background: var(--aqua-soft);
+  font: 600 10px/1.5 var(--mono); text-transform: uppercase; letter-spacing: .04em;
+}
 .code-wrap { margin-bottom: 18px; }
 .code-wrap:last-child { margin-bottom: 0; }
 .code-meta {
@@ -524,6 +538,33 @@ aside.detail {
   color: var(--text-strong); margin-bottom: 8px;
 }
 .about-card p { font-size: 14px; color: var(--text); line-height: 1.6; }
+
+/* ---------- data access ---------- */
+.data-access {
+  max-width: 1052px; margin: 0 auto 26px; padding: 26px;
+  display: grid; grid-template-columns: minmax(240px, .85fr) minmax(420px, 1.6fr); gap: 28px;
+  background: var(--bg-raise); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.data-kicker {
+  color: var(--aqua); font: 600 10px/1.4 var(--mono); letter-spacing: .09em;
+}
+.data-access h3 { margin: 7px 0 8px; color: var(--text-strong); font-size: 22px; }
+.data-access p { color: var(--text); font-size: 13px; line-height: 1.65; }
+.data-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.data-link {
+  display: flex; flex-direction: column; justify-content: center; min-height: 68px;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-sunk); text-decoration: none; transition: border-color 140ms, background 140ms;
+}
+.data-link:hover { border-color: var(--aqua); background: var(--aqua-soft); }
+.data-link.primary { border-color: color-mix(in srgb, var(--aqua) 55%, var(--border)); }
+.data-link b { color: var(--text-strong); font-size: 12px; }
+.data-link span { margin-top: 3px; color: var(--muted); font-size: 11px; }
+@media (max-width: 760px) {
+  .data-access { margin: 0 24px 24px; grid-template-columns: 1fr; padding: 20px; }
+  .data-links { grid-template-columns: 1fr; }
+}
 
 /* ---------- footer ---------- */
 footer {

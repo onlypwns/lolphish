@@ -21,6 +21,24 @@
   let activeId = null;
   let state = { q: "", category: "", vendor: "" };
   let searchTimer = null;
+  const bodyObserver = window.ResizeObserver
+    ? new ResizeObserver(updateExpandedHeight)
+    : null;
+
+  function updateExpandedHeight() {
+    const body = tableEl.querySelector(".entry.active .body");
+    if (body) body.style.maxHeight = body.scrollHeight + "px";
+  }
+
+  function expandBody(body) {
+    if (bodyObserver) {
+      bodyObserver.disconnect();
+      bodyObserver.observe(body.querySelector(".body-inner"));
+    }
+    requestAnimationFrame(updateExpandedHeight);
+  }
+
+  window.addEventListener("resize", updateExpandedHeight);
 
   /* ---- populate filter options ---- */
   STATS.categories.forEach(c => {
@@ -37,9 +55,11 @@
 
   /* precompute search haystack once */
   ENTRIES.forEach(e => {
-    const codeHay = (e.detection_code || []).map(c => [c.lang, c.query, c.description].join(" ")).join(" ");
+    const codeHay = (e.detection_code || []).map(c => [c.lang, c.query, c.description, c.status].join(" ")).join(" ");
+    const evidenceHay = (e.evidence || []).map(item => [item.type, item.description].join(" ")).join(" ");
     e._search = [
       e.id, e.name, e.category, e.vendors.join(" "), e.summary, e.abuse,
+      (e.prerequisites || []).join(" "), evidenceHay,
       e.variants.join(" "), e.kits.join(" "), e.surfaces.join(" "),
       e.attack.join(" "), e.detections.join(" "), e.mitigations.join(" "),
       e.status || "", codeHay
@@ -168,7 +188,8 @@
     const list = (arr) => `<ul class="ticklist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
     const tags = (arr, cls) => `<div class="tagrow">${arr.map(x => `<span class="tag ${cls}">${esc(x)}</span>`).join("")}</div>`;
     const codeBlock = (snip, idx) => {
-      const meta = [snip.lang.toUpperCase(), snip.source].filter(Boolean).join(" · ");
+      const status = snip.status === "validated" ? "Validated" : "Hunting starting point";
+      const meta = [snip.lang.toUpperCase(), status, snip.source].filter(Boolean).join(" · ");
       const desc = snip.description ? `<p class="code-desc">${esc(snip.description)}</p>` : "";
       return `<div class="code-wrap" data-idx="${idx}">
         <div class="code-meta">
@@ -185,16 +206,18 @@
         <div class="mobile-detail">${detailHTML(e)}</div>
         ${sect("Legitimate purpose", `<p>${esc(e.summary)}</p>`, true)}
         ${sect("Abuse primitive", `<p>${esc(e.abuse)}</p>`, true)}
+        ${e.prerequisites && e.prerequisites.length ? sect("Prerequisites", list(e.prerequisites), true) : ""}
+        ${e.evidence && e.evidence.length ? sect("Evidence & scope", evidenceHTML(e.evidence), true) : ""}
         ${sect(`Variants (${e.variants.length})`, list(e.variants))}
         ${sect("Kits / Actors / Tooling", tags(e.kits, "kit"))}
         ${sect("Detection & hunting", list(e.detections))}
-        ${e.detection_code && e.detection_code.length ? sect(`Detection code (${e.detection_code.length})`, e.detection_code.map((c, i) => codeBlock(c, i)).join(""), true) : ""}
+        ${e.detection_code && e.detection_code.length ? sect(`Detection code (${e.detection_code.length})`, `<p class="code-notice">Hunting starting points unless marked validated. Confirm table availability, field names, baselines, and false positives in your environment.</p>` + e.detection_code.map((c, i) => codeBlock(c, i)).join(""), true) : ""}
         ${sect("Structural mitigations", list(e.mitigations))}
         ${sect("Trust surfaces", tags(e.surfaces, "surface"))}
         ${sect("ATT&CK", list(e.attack))}
         ${relatedSection(e)}
         ${sect("References", `<ul class="reflist">${e.refs.map(r =>
-          `<li><a href="${r.url}" target="_blank" rel="noopener">${esc(r.title)}</a></li>`).join("")}</ul>
+          `<li><a href="${referenceHref(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a></li>`).join("")}</ul>
           <div class="since">First documented: <b>${esc(e.since)}</b></div>`, true)}
       </div>`;
   }
@@ -202,6 +225,7 @@
   /* ---- rows ---- */
   function render() {
     const visible = ENTRIES.filter(matches);
+    if (bodyObserver) bodyObserver.disconnect();
     countEl.innerHTML = `<b>${visible.length}</b> / ${ENTRIES.length} entries`;
 
     tableEl.innerHTML = "";
@@ -220,9 +244,7 @@
       tableEl.appendChild(wrap);
 
       const body = wrap.querySelector(".body");
-      if (e.id === activeId) requestAnimationFrame(() => {
-        body.style.maxHeight = body.scrollHeight + "px";
-      });
+      if (e.id === activeId) expandBody(body);
     });
 
     if (!visible.length) {
@@ -282,6 +304,7 @@
     const body = entryEl.querySelector(".body");
 
     if (activeId === id) {
+      if (bodyObserver) bodyObserver.disconnect();
       body.style.maxHeight = "0px";
       entryEl.classList.remove("active");
       setHash(null);
@@ -303,7 +326,7 @@
     setHash(id);
     entryEl.classList.add("active");
     body.innerHTML = bodyHTML(e);
-    requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + "px"; });
+    expandBody(body);
     renderDetail(e);
 
     // on desktop, scroll selected row into view gently
@@ -313,6 +336,11 @@
   }
 
   function applyFilters() {
+    const selected = ENTRIES.find(e => e.id === activeId);
+    if (selected && !matches(selected)) {
+      activeId = null;
+      renderDetail(null);
+    }
     render();
     updateClearButton();
     writeUrlState();
@@ -388,9 +416,31 @@
     return `<div class="sect wide"><h4>See also</h4><div class="related-row">${links}</div></div>`;
   }
 
+  function evidenceHTML(items) {
+    const labels = {
+      "lab-scenario": "Lab scenario",
+      "vendor-documentation": "Vendor documentation",
+      "public-research": "Public research",
+      "observed-campaign": "Observed campaign",
+      "independent-test": "Independent test"
+    };
+    return `<ul class="evidence-list">${items.map(item =>
+      `<li><span class="evidence-type">${esc(labels[item.type] || item.type)}</span>${esc(item.description)}</li>`
+    ).join("")}</ul>`;
+  }
+
   function esc(s) {
     return String(s).replace(/[&<>"']/g, c =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function referenceHref(value) {
+    try {
+      const url = new URL(value);
+      return ["http:", "https:"].includes(url.protocol) ? esc(url.href) : "#";
+    } catch (e) {
+      return "#";
+    }
   }
 
   /* ---- init ---- */
@@ -398,6 +448,7 @@
   readUrlState();
   render();
   updateClearButton();
+  renderDetail(null);
 
   // open hash target after first render
   const hashId = (location.hash || "").replace(/^#/, "");
@@ -410,7 +461,7 @@
         el.parentElement.classList.add("active");
         const body = el.parentElement.querySelector(".body");
         body.innerHTML = bodyHTML(target);
-        requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + "px"; });
+        expandBody(body);
         renderDetail(target);
         el.scrollIntoView({ behavior: "auto", block: "center" });
       }

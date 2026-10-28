@@ -40,7 +40,8 @@ CATEGORY_META = {
     "Reputation Laundering":   {"color": "#8fd3a0", "blurb": "Hosting and redirect chains that inherit someone else's good name"},
 }
 
-FIELD_ORDER = ["id", "name", "category", "vendors", "summary", "abuse", "variants",
+FIELD_ORDER = ["id", "name", "category", "vendors", "summary", "abuse",
+               "prerequisites", "evidence", "variants",
                "kits", "surfaces", "attack", "detections", "detection_code",
                "mitigations", "refs", "related", "status", "since"]
 
@@ -85,6 +86,9 @@ def load_entries():
         if data["category"] not in CATEGORY_META:
             fail(f"{slug}: unknown category '{data['category']}'")
 
+        for snippet in data.get("detection_code", []):
+            snippet.setdefault("status", "hunting-starting-point")
+
         entries.append({k: data[k] for k in FIELD_ORDER if k in data})
 
     ids = [e["id"] for e in entries]
@@ -123,7 +127,9 @@ def build(entries):
 
     os.makedirs(os.path.dirname(API_PATH), exist_ok=True)
     with open(API_PATH, "w", encoding="utf-8") as f:
-        json.dump({"version": "0.5", "generated_by": "lolphish build.py",
+        json.dump({"version": "0.6", "generated_by": "lolphish build.py",
+                   "license": "MIT",
+                   "usage_note": "Detection snippets are hunting starting points unless status is validated; test them against your telemetry before operational use.",
                    "stats": stats, "entries": entries}, f, indent=2, ensure_ascii=False)
 
     print(f"OK - {stats['entries']} entries, {stats['variants']} variants, "

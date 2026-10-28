@@ -7,10 +7,25 @@ vendors:
 - Microsoft Entra ID
 summary: Temporary Access Pass is a time-limited, single-factor code issued by privileged Entra ID roles
   to let users register MFA methods or recover access without their normal credentials.
-abuse: An attacker who compromises an Authentication Administrator, Privileged Authentication Administrator,
-  or Global Administrator identity can generate a TAP for any user in scope. The victim (or attacker)
-  authenticates with the TAP and bypasses all Conditional Access policies, including MFA and authentication
-  strength requirements. Access tokens remain valid for 70–75 minutes even if the TAP lifetime is only 10 minutes.
+abuse: An attacker controlling an identity authorized to manage a target's authentication methods can issue
+  a TAP for an eligible user within that administrative scope, then use it to authenticate or bootstrap another
+  method. A course lab demonstrated this through an application holding Authentication Administrator over an
+  Administrative Unit, followed by cross-tenant access without an additional MFA prompt under the configured
+  trust settings. The lab also observed an access token remaining usable for 70–75 minutes after a ten-minute
+  TAP. These bounded observations do not mean TAP satisfies every authentication strength or bypasses every
+  Conditional Access policy.
+prerequisites:
+- Control of a principal authorized to create a TAP for the target user
+- Target user included in the tenant TAP authentication-method policy
+- Role scope covering the target, including any Administrative Unit boundary
+- Resource and cross-tenant policies that permit the resulting sign-in and access
+evidence:
+- type: lab-scenario
+  description: A course lab used an application with scoped Authentication Administrator rights to create a TAP, authenticate as an in-scope user, and switch into a trusted resource tenant.
+- type: lab-scenario
+  description: The same lab reported access-token usability for 70–75 minutes after a TAP configured for ten minutes; this is an observation rather than a universal lifetime guarantee.
+- type: vendor-documentation
+  description: Microsoft documents TAP policy, role and scope behavior, authentication-strength compatibility, token lifetime considerations, and cross-tenant MFA trust.
 variants:
 - Auth Admin scoped to Administrative Unit creates TAP for targeted sync/user account
 - Compromised service principal or app with Authentication Admin role creates TAP
@@ -35,7 +50,7 @@ detections:
 - TAP creation followed within minutes by sign-in from a new IP/geography for the same user
 - Cross-tenant switch (CrossTenantAccessType = B2BCollaboration) shortly after TAP-authenticated session
 mitigations:
-- Restrict TAP policy to specific groups, short lifetime, and isUsableOnce=true
+- Restrict TAP policy to specific groups, short lifetime, and isUsableOnce=true; separately control session lifetime and reauthentication
 - Scope Authentication Admin roles to the smallest Administrative Unit required; avoid tenant-wide assignments
 - Alert on every TAP creation and require ticketed approval for privileged users
 - Review cross-tenant access settings; suppress consent only for explicitly trusted tenants

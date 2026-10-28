@@ -40,8 +40,8 @@ detection_code:
 mitigations:
 - Grant Reader at the narrowest scope; avoid subscription-level Reader for non-ops accounts
 - Prefer system-assigned MIs over user-assigned MIs where possible
-- Delete short-lived deployment hosts immediately after use
-- Reduce Activity Log retention to the minimum required and send to a SIEM with strict access controls
+- Remove privileged managed-identity assignments and credentials when short-lived deployment hosts are retired
+- Preserve required audit retention while restricting Activity Log and exported-log access to dedicated monitoring roles
 refs:
 - title: Azure Activity Log overview
   url: https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/activity-log

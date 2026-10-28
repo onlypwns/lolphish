@@ -23,11 +23,12 @@ PR the new `entries/*.yml` file **and** the regenerated `data.js` / `api/entries
 
 ## Ground rules
 
-1. **Public research only.** Every claim links to a published source in `refs`. This project aggregates and structures; it does not disclose.
+1. **Defensive evidence only.** Link public claims in `refs`. Lab scenarios are welcome when prerequisites and observed results are bounded; do not copy private course content or disclose new vulnerabilities.
 2. **Detections + mitigations are mandatory.** An entry that's only an attacker's menu doesn't get merged. Detection-as-code (KQL/Sigma/Splunk) is the gold standard.
-3. **Variants must be real.** Named, observed in the wild or in published research, sourced. No speculative taxonomies.
+3. **Label evidence honestly.** Distinguish lab scenarios, documented behavior, public research, independent testing, and observed campaigns. A plausible lab path does not need campaign attribution, but it must not be written as universal behavior.
 4. **Mechanism over campaign.** Entries describe the abusable *primitive*; campaigns and actors belong in the `kits` field as examples, not as the entry itself.
 5. **Neutral voice.** Describe what the thing does and how it's abused. No vendor bashing, no fear-mongering, no marketing.
+6. **Queries are hunts by default.** Use `status: validated` only after the query runs in the named product and has been checked with representative malicious and benign cases.
 
 ## Schema reference
 

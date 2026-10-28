@@ -37,12 +37,12 @@ detection_code:
   query: |
     EmailEvents
     | where EmailDirection == "Inbound"
-    | where AttachmentCount > 0 and BodyLength < 300
+    | where AttachmentCount > 0 and UrlCount == 0
     | join kind=inner EmailAttachmentInfo on NetworkMessageId
     | where FileType in ("png", "jpg", "jpeg", "pdf")
     | summarize ImageOnlyMails=count() by RecipientEmailAddress, SenderFromAddress
     | where ImageOnlyMails > 2
-  description: Identifies image-heavy, text-light inbound email patterns that commonly carry quishing payloads.
+  description: Identifies repeated inbound image/PDF attachments where the email parser extracted no URL; QR decoding or image analysis is still required to identify quishing.
   source: LOLPHISH
 mitigations:
 - SEG QR decoding + click-time protection

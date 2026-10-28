@@ -39,9 +39,9 @@ detection_code:
     DeviceNetworkEvents
     | where RemoteUrl has_any (ipfsGateways)
     | extend CID=extract(@"/ipfs/([a-zA-Z0-9]+)", 1, RemoteUrl)
-    | summarize CIDs=make_set(CID), Hits=count(), FirstSeen=min(Timestamp) by DeviceName, AccountName
+    | summarize CIDs=make_set(CID), Hits=count(), FirstSeen=min(Timestamp) by DeviceName, InitiatingProcessAccountName
     | where array_length(CIDs) > 0
-  description: Lists IPFS gateway requests and extracts CIDs to enable CID-level hunting and gateway blocklists.
+  description: Lists path-style IPFS gateway requests and extracts CIDs when RemoteUrl contains a full path; hostname-only and subdomain gateway telemetry requires separate handling.
   source: LOLPHISH
 mitigations:
 - Gateway restriction to sanctioned business gateways, others to isolation

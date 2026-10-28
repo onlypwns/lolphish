@@ -32,7 +32,7 @@ attack:
 - T1528 — Steal Application Access Token
 - T1550.001 — Use Alternate Authentication Material
 detections:
-- 'Entra sign-in logs: authenticationProtocol = deviceCodeFlow (hunt for source ASNs in hosting ranges
+- 'Entra sign-in logs: authenticationProtocol = deviceCode (hunt for source ASNs in hosting ranges
   — e.g. Tencent AS132203 in the Kali365 campaign)'
 - 'M365 Defender: ''Device code flow phishing'' related alerts; impossible-travel + device-code combo'
 - Correlate lure-hosting referrers (Canva, shorteners) with devicelogin completions
@@ -45,7 +45,7 @@ detection_code:
     ]);
     SigninLogs
     | where TimeGenerated > ago(24h)
-    | where AuthenticationProtocol == "deviceCodeFlow"
+    | where AuthenticationProtocol == "deviceCode"
     | where ResultType == 0
     | extend
         City          = tostring(parse_json(LocationDetails).city),
@@ -67,7 +67,7 @@ detection_code:
   query: |
     AADNonInteractiveUserSignInLogs
     | where TimeGenerated > ago(1h)
-    | where ResultType == 50199  // Device code pending — attacker polling
+    | where ResultType == 70016  // AuthorizationPending in OAuth device flow
     | summarize
         PollCount      = count(),
         UniqueUsers    = dcount(UserPrincipalName),
@@ -83,19 +83,19 @@ detection_code:
         "LOW — review"
       )
     | sort by UniqueUsers desc, PollCount desc
-  description: Dynamic device-code phishing campaigns — mass polling from one IP before any victim authenticates.
+  description: Repeated AuthorizationPending device-flow events from one IP. Confirm that the selected connector exports these pre-authorization events before operational use.
   source: Threat Hunting Wiki — D001 device-code-indicators
 - lang: kql
   query: |
     let DeviceCodeGrants = SigninLogs
     | where TimeGenerated > ago(2h)
-    | where AuthenticationProtocol == "deviceCodeFlow"
+    | where AuthenticationProtocol == "deviceCode"
     | where ResultType == 0
     | project GrantTime = TimeGenerated, UPN = UserPrincipalName, GrantIP = IPAddress, GrantApp = AppDisplayName;
     let TokenRefreshes = AADNonInteractiveUserSignInLogs
     | where TimeGenerated > ago(2h)
     | where ResultType == 0
-    | where AuthenticationProtocol != "deviceCodeFlow"
+    | where AuthenticationProtocol != "deviceCode"
     | project RefreshTime = TimeGenerated, UPN = UserPrincipalName, RefreshIP = IPAddress, RefreshApp = AppDisplayName;
     DeviceCodeGrants
     | join kind=inner TokenRefreshes on UPN

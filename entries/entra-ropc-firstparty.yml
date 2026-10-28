@@ -8,11 +8,23 @@ vendors:
 summary: Resource Owner Password Credentials is a legacy OAuth grant where username+password are sent
   straight to the token endpoint. Microsoft pre-consents dozens of first-party client IDs (Office, Teams,
   Azure CLI, broker apps) with broad scopes in every tenant.
-abuse: With a phished or brute-forced password, the attacker authenticates as a trusted first-party app
-  over ROPC — no consent prompt, no client secret, and frequently no MFA/CA evaluation because the flow
-  looks like 'Microsoft Office' syncing. Picking the right client ID (per entrascopes.com) chooses your
-  scopes, FOCI membership, and CA-bypass profile. Variants of this are the quiet workhorse behind credential-stuffing-to-mailbox-access
-  pipelines and post-AiTM token laundering.
+abuse: With a phished or otherwise compromised password, an attacker can attempt ROPC as a public first-party
+  client and request pre-consented scopes without an interactive browser. The flow succeeds only where the
+  account and requested resource do not require controls that ROPC cannot satisfy. Course lab work demonstrated
+  a Microsoft Graph token being issued with a first-party client ID and a mobile-looking User-Agent under the
+  lab's policy configuration. Changing User-Agent text does not itself prove device compliance or universally
+  bypass MFA or Conditional Access.
+prerequisites:
+- Valid username and password for the target user
+- A tenant, account, client, and requested resource configuration that permits ROPC
+- Applicable Conditional Access and authentication requirements that do not block the flow
+evidence:
+- type: lab-scenario
+  description: A course lab reported successful Microsoft Graph token acquisition through ROPC using a first-party client ID and mobile-looking User-Agent.
+- type: vendor-documentation
+  description: Microsoft documents ROPC as a legacy flow that cannot satisfy interactive MFA and can be blocked when MFA is required.
+- type: public-research
+  description: Public Entra tooling and client catalogs document first-party client IDs, scopes, and token-family behavior used when assessing conditional paths.
 variants:
 - Client-ID shopping for CA-bypass (per-app CA evaluation gaps)
 - 'Scope staircasing: minimal scope for login, pivot to Mail.Read via FOCI'
@@ -37,15 +49,15 @@ detection_code:
 - lang: kql
   query: |
     AADNonInteractiveUserSignInLogs
-    | where AuthenticationProtocol == "ROPC"
-    | summarize Count=count(), IPs=make_set(IPAddress), Apps=make_set(AppDisplayName), ClientIds=make_set(ClientId) by UserPrincipalName
+    | where AuthenticationProtocol == "ropc"
+    | summarize Count=count(), IPs=make_set(IPAddress), Apps=make_set(AppDisplayName), AppIds=make_set(AppId) by UserPrincipalName
     | where Count > 5
     | extend IPCount=array_length(IPs)
     | where IPCount > 2
   description: Surfaces users with multiple ROPC non-interactive sign-ins across multiple IPs/apps, a pattern common in first-party client-ID abuse.
   source: LOLPHISH
 mitigations:
-- Block legacy auth org-wide and scope CA to 'all cloud apps' (no exclusions)
+- Block ROPC and legacy authentication paths with Conditional Access; verify coverage with sign-in tests rather than assuming policy scope
 - 'CA: require compliant/hybrid-joined device for public-client flows'
 - 'Hunt baseline: enumerate which first-party client IDs your users legitimately use; alert off-baseline'
 refs:

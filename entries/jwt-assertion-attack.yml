@@ -31,7 +31,7 @@ attack:
 - "T1552.004 — Unsecured Credentials: Private Keys"
 - "T1550.001 — Use Alternate Authentication Material: Application Access Token"
 detections:
-- Service principal sign-ins with AuthenticationDetails containing "client_assertion"
+- Service principal sign-ins whose ClientCredentialType indicates a client assertion
 - Token grants immediately preceded by Key Vault `sign` or `secrets/get` operations
 - SPN authenticating from IP ranges with no historical baseline
 - New certificates or secrets added to apps with high-privilege API permissions
@@ -47,7 +47,7 @@ detection_code:
     AADServicePrincipalSignInLogs
     | where TimeGenerated > ago(24h)
     | where ResultType == 0
-    | where AuthenticationDetails has "client_assertion"
+    | where ClientCredentialType has "client assertion"
     | project TimeGenerated, ServicePrincipalName, AppId, IPAddress,
               ResourceDisplayName, Location
     | summarize Count = count(), Resources = make_set(ResourceDisplayName)
@@ -64,7 +64,7 @@ detection_code:
     | where TimeGenerated > ago(1d)
     | where ResultType == 0
     | join kind=leftouter baseline on ServicePrincipalName
-    | where not (array_contains(KnownIPs, IPAddress))
+    | where isnull(KnownIPs) or not(set_has_element(KnownIPs, IPAddress))
     | project TimeGenerated, ServicePrincipalName, IPAddress, ResourceDisplayName
     | sort by TimeGenerated desc
   description: SPN authenticating from IPs not seen in the previous 30-day baseline.

@@ -36,6 +36,20 @@ abuse: >
   Explain how attackers abuse the legitimate thing: what the victim
   sees, what the attacker gets, and why existing controls miss it.
 
+# Conditions required for this path. Include starting access, product settings,
+# policy exclusions/trust, licensing, and relevant scope boundaries.
+prerequisites:
+  - Compromised identity, token, application, or other starting access
+  - Product or policy configuration required for the scenario
+
+# Distinguish plausible lab paths, documented behavior, published research,
+# reproduced tests, and campaigns. Describe the limits of each item.
+evidence:
+  - type: lab-scenario
+    description: "Observed in a named/versioned course lab under the prerequisites above"
+  - type: vendor-documentation
+    description: "Vendor documentation confirms the underlying product behavior"
+
 # Named mutations. Each variant should exist for a reason —
 # ideally a specific control it defeats. Observed or published only.
 variants:
@@ -71,6 +85,7 @@ detection_code:
       | summarize count() by Account
     description: "One-line explanation of what the query hunts for"
     source: "Your name / URL"
+    status: hunting-starting-point  # use validated only after testing in the named product
 
 # Structural controls. Not "user awareness" alone — the thing that
 # actually kills or constrains the primitive.

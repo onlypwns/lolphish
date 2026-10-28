@@ -22,6 +22,31 @@
     "vendors":    { "type": "array", "items": { "type": "string" }, "minItems": 1 },
     "summary":    { "type": "string", "minLength": 40 },
     "abuse":      { "type": "string", "minLength": 80 },
+    "prerequisites": {
+      "type": "array",
+      "description": "Conditions and starting access required for the scenario to work",
+      "items": { "type": "string", "minLength": 10 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "evidence": {
+      "type": "array",
+      "description": "What supports the scenario and how broadly that evidence applies",
+      "items": {
+        "type": "object",
+        "required": ["type", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["lab-scenario", "vendor-documentation", "public-research",
+                     "observed-campaign", "independent-test"]
+          },
+          "description": { "type": "string", "minLength": 20 }
+        }
+      },
+      "minItems": 1
+    },
     "variants":   { "type": "array", "items": { "type": "string" }, "minItems": 1 },
     "kits":       { "type": "array", "items": { "type": "string" }, "minItems": 1 },
     "surfaces":   { "type": "array", "items": { "type": "string" }, "minItems": 1 },
@@ -41,7 +66,12 @@
           },
           "query": { "type": "string", "minLength": 10 },
           "description": { "type": "string" },
-          "source": { "type": "string" }
+          "source": { "type": "string" },
+          "status": {
+            "type": "string",
+            "description": "Validation state; omitted snippets default to hunting-starting-point at build time",
+            "enum": ["hunting-starting-point", "validated"]
+          }
         }
       }
     },

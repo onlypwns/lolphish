@@ -49,8 +49,6 @@ mitigations:
 - Audit and remove unrecognized certificate credentials on the Exchange Online service principal
 - Monitor AuditLogs for Exchange Online actor patterns until SP split is complete
 refs:
-- title: Dirk-jan Mollema — Borrowing Windows Hello keys / DEF CON 33
-  url: https://dirkjanm.io/
 - title: Microsoft — Exchange Server security changes for hybrid deployments
   url: https://techcommunity.microsoft.com/blog/exchange/exchange-server-security-changes-for-hybrid-deployments/4396833
 - title: CVE-2025-53786 — MSRC advisory
